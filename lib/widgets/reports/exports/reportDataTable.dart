@@ -22,7 +22,7 @@ class ReportDataTable extends StatefulWidget {
   final String? status;
 
   const ReportDataTable({
-    Key? key,
+    super.key,
     required this.periodName,
     required this.startDate,
     required this.endDate,
@@ -30,7 +30,7 @@ class ReportDataTable extends StatefulWidget {
     this.zone,
     this.motorship,
     this.status,
-  }) : super(key: key);
+  });
 
   @override
   State<ReportDataTable> createState() => _ReportDataTableState();
@@ -62,8 +62,7 @@ class _ReportDataTableState extends State<ReportDataTable> {
       }
 
       // PASO 3: Filtrar por área SOLO si no es "Todas"
-      if (widget.area != null &&
-          widget.area != 'Todas' &&
+      if (widget.area != 'Todas' &&
           widget.area.isNotEmpty) {
         if (data.area != widget.area) {
           return false;
@@ -142,13 +141,16 @@ class _ReportDataTableState extends State<ReportDataTable> {
         if (data.id.toString().contains(searchLower)) found = true;
 
         // Buscar en área
-        if (!found && data.area.toLowerCase().contains(searchLower))
+        if (!found && data.area.toLowerCase().contains(searchLower)) {
           found = true;
+        }
 
         // Buscar en motonave
         if (!found &&
             data.motorship != null &&
-            data.motorship!.toLowerCase().contains(searchLower)) found = true;
+            data.motorship!.toLowerCase().contains(searchLower)) {
+          found = true;
+        }
 
         // Buscar en trabajadores
         if (!found) {
@@ -304,7 +306,7 @@ class _ReportDataTableState extends State<ReportDataTable> {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: DataTable(
-          headingRowColor: MaterialStateProperty.all(
+          headingRowColor: WidgetStateProperty.all(
             const Color(0xFFF7FAFC),
           ),
           columnSpacing: 24,
@@ -326,7 +328,7 @@ class _ReportDataTableState extends State<ReportDataTable> {
             _buildDataColumn('Hora Fin', 11),
             _buildDataColumn('Estado', 12),
           ],
-          rows: await rows,
+          rows: rows,
         ),
       ),
     );
@@ -362,7 +364,7 @@ class _ReportDataTableState extends State<ReportDataTable> {
         // Operación sin grupos
         rows.add(
           DataRow(
-            color: MaterialStateProperty.all(backgroundColor),
+            color: WidgetStateProperty.all(backgroundColor),
             cells: [
               DataCell(Text(assignment.id?.toString() ?? 'N/A')),
               DataCell(Text(DateFormat('dd/MM/yyyy').format(assignment.date))),
@@ -395,7 +397,7 @@ class _ReportDataTableState extends State<ReportDataTable> {
             // Grupo sin trabajadores
             rows.add(
               DataRow(
-                color: MaterialStateProperty.all(backgroundColor),
+                color: WidgetStateProperty.all(backgroundColor),
                 cells: [
                   DataCell(Text(assignment.id?.toString() ?? 'N/A')),
                   DataCell(
@@ -438,17 +440,15 @@ class _ReportDataTableState extends State<ReportDataTable> {
                 final workersProvider =
                     Provider.of<WorkersProvider>(context, listen: false);
                 final worker = workersProvider.getWorkerById(workerId);
-                if (worker != null) {
-                  workerName = worker.name;
-                  workerDni = worker.document.isNotEmpty
-                      ? worker.document
-                      : worker.code;
-                }
-              }
+                workerName = worker.name;
+                workerDni = worker.document.isNotEmpty
+                    ? worker.document
+                    : worker.code;
+                            }
 
               rows.add(
                 DataRow(
-                  color: MaterialStateProperty.all(backgroundColor),
+                  color: WidgetStateProperty.all(backgroundColor),
                   cells: [
                     DataCell(Text(assignment.id?.toString() ?? 'N/A')),
                     DataCell(

@@ -12,10 +12,10 @@ class WorkerIncapacitationDialog extends StatefulWidget {
   final Function(Worker, DateTime, DateTime) onIncapacitate;
 
   const WorkerIncapacitationDialog({
-    Key? key,
+    super.key,
     required this.worker,
     required this.onIncapacitate,
-  }) : super(key: key);
+  });
 
   @override
   State<WorkerIncapacitationDialog> createState() =>
@@ -328,8 +328,7 @@ class _WorkerIncapacitationDialogState
           data: ThemeData.light().copyWith(
             colorScheme: ColorScheme.light(
               primary: Colors.purple[700]!,
-            ),
-            dialogBackgroundColor: Colors.white,
+            ), dialogTheme: DialogThemeData(backgroundColor: Colors.white),
           ),
           child: child!,
         );

@@ -11,14 +11,14 @@ class WorkerStats extends StatelessWidget {
   final Function(WorkerFilter) onFilterChanged;
 
   const WorkerStats({
-    Key? key,
+    super.key,
     required this.totalWorkers,
     required this.assignedWorkers,
     required this.disabledWorkers,
     required this.retiredWorkers,
     required this.currentFilter,
     required this.onFilterChanged,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

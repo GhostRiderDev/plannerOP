@@ -6,11 +6,11 @@ class ChartSelector extends StatelessWidget {
   final List<Map<String, dynamic>> chartOptions;
 
   const ChartSelector({
-    Key? key,
+    super.key,
     required this.selectedChart,
     required this.onChartChanged,
     required this.chartOptions,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

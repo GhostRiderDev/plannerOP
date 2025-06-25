@@ -9,9 +9,9 @@ class MultiChargerSelectionField extends StatefulWidget {
   final TextEditingController controller;
 
   const MultiChargerSelectionField({
-    Key? key,
+    super.key,
     required this.controller,
-  }) : super(key: key);
+  });
 
   @override
   State<MultiChargerSelectionField> createState() =>
@@ -235,7 +235,7 @@ class _MultiChargerSelectionFieldState
 
   void _showChargerSelectionDialog(
       BuildContext context, List<User> availableChargers) {
-    final _searchController = TextEditingController();
+    final searchController = TextEditingController();
 
     showDialog(
       context: context,
@@ -252,14 +252,14 @@ class _MultiChargerSelectionFieldState
 
           return AlertDialog(
             title: const Text('Seleccionar Encargados'),
-            content: Container(
+            content: SizedBox(
               width: double.maxFinite,
               height: 400,
               child: Column(
                 children: [
                   // Campo de búsqueda
                   TextField(
-                    controller: _searchController,
+                    controller: searchController,
                     decoration: InputDecoration(
                       hintText: 'Buscar encargado...',
                       prefixIcon: const Icon(Icons.search),

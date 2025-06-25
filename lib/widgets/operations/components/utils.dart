@@ -72,7 +72,7 @@ Widget buildInChargerItem(User charger) {
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF2D3748),
+                          color: Color(0xFF2D3748),
                         ),
                       ),
                     ),
@@ -114,9 +114,9 @@ IconData getIconForFoodType(String foodType, bool isMarked) {
 Widget buildFilterBar(
   List<String> areas,
   List<User> supervisors,
-  bool _showFilters,
-  String? _selectedArea,
-  int? _selectedSupervisorId,
+  bool showFilters,
+  String? selectedArea,
+  int? selectedSupervisorId,
   BuildContext context,
   Function setState, {
   Function(String?)? onAreaChanged,
@@ -154,7 +154,7 @@ Widget buildFilterBar(
                 depth: 2,
                 intensity: 0.7,
                 boxShape: NeumorphicBoxShape.circle(),
-                color: _showFilters
+                color: showFilters
                     ? const Color(0xFF3182CE)
                     : const Color(0xFFE2E8F0),
               ),
@@ -163,12 +163,12 @@ Widget buildFilterBar(
               child: Icon(
                 Icons.filter_list,
                 size: 18,
-                color: _showFilters ? Colors.white : const Color(0xFF718096),
+                color: showFilters ? Colors.white : const Color(0xFF718096),
               ),
             ),
           ],
         ),
-        if (_showFilters) ...[
+        if (showFilters) ...[
           const SizedBox(height: 8),
           Row(
             children: [
@@ -182,7 +182,7 @@ Widget buildFilterBar(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  value: _selectedArea,
+                  value: selectedArea,
                   hint: Text('Todas las áreas'),
                   isExpanded: true,
                   items: [
@@ -213,7 +213,7 @@ Widget buildFilterBar(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  value: _selectedSupervisorId,
+                  value: selectedSupervisorId,
                   hint: Text('Todos los supervisores'),
                   isExpanded: true,
                   selectedItemBuilder: (BuildContext context) {
@@ -244,7 +244,7 @@ Widget buildFilterBar(
                             ),
                           ),
                         );
-                      }).toList(),
+                      }),
                     ];
                   },
                   menuMaxHeight: 300,
@@ -292,7 +292,7 @@ Widget buildFilterBar(
               ),
             ],
           ),
-          if (_selectedArea != null || _selectedSupervisorId != null) ...[
+          if (selectedArea != null || selectedSupervisorId != null) ...[
             const SizedBox(height: 8),
             Align(
               alignment: Alignment.centerRight,

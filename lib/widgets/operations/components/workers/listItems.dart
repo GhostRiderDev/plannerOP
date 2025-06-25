@@ -6,7 +6,6 @@ import 'package:plannerop/core/model/workerGroup.dart';
 import 'package:plannerop/store/task.dart';
 import 'package:plannerop/utils/worker_utils.dart';
 import 'package:plannerop/widgets/operations/components/utils/Button.dart';
-import 'package:plannerop/widgets/operations/components/utils/Loader.dart';
 import 'package:provider/provider.dart';
 
 // Construir el encabezado de la lista

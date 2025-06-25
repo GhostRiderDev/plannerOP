@@ -27,7 +27,7 @@ class AppButton extends StatelessWidget {
   final BorderRadius? borderRadius;
 
   const AppButton({
-    Key? key,
+    super.key,
     required this.text,
     this.onPressed,
     this.type = AppButtonType.primary,
@@ -38,7 +38,7 @@ class AppButton extends StatelessWidget {
     this.customChild,
     this.padding,
     this.borderRadius,
-  }) : super(key: key);
+  });
 
   // Factory constructors para tipos específicos
   factory AppButton.primary({

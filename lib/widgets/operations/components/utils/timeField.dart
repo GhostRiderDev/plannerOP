@@ -14,7 +14,7 @@ class TimeField extends StatefulWidget {
   final String? lockedMessage;
 
   const TimeField({
-    Key? key,
+    super.key,
     required this.label,
     required this.hint,
     required this.icon,
@@ -24,7 +24,7 @@ class TimeField extends StatefulWidget {
     this.isEndTime = false,
     this.locked = false,
     this.lockedMessage,
-  }) : super(key: key);
+  });
 
   @override
   State<TimeField> createState() => _TimeFieldState();
@@ -203,8 +203,7 @@ class _TimeFieldState extends State<TimeField> {
               colorScheme: const ColorScheme.light(
                 primary: Color(0xFF3182CE),
                 onPrimary: Colors.white,
-              ),
-              dialogBackgroundColor: Colors.white,
+              ), dialogTheme: DialogThemeData(backgroundColor: Colors.white),
             ),
             child: child!,
           );

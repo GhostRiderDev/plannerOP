@@ -13,12 +13,11 @@ class WorkerSelectionDialog extends StatefulWidget {
   final String title; // Título del diálogo
 
   const WorkerSelectionDialog(
-      {Key? key,
+      {super.key,
       required this.selectedWorkers,
       this.availableWorkers,
       required this.allSelectedWorkers,
-      required this.title})
-      : super(key: key);
+      required this.title});
 
   @override
   State<WorkerSelectionDialog> createState() => _WorkerSelectionDialogState();
@@ -190,7 +189,7 @@ class _WorkerSelectionDialogState extends State<WorkerSelectionDialog> {
             const SizedBox(height: 16),
 
             // Filtro por áreas
-            Container(
+            SizedBox(
               height: 40,
               child: ListView(
                 scrollDirection: Axis.horizontal,

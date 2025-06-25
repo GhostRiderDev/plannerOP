@@ -16,14 +16,14 @@ class WorkerDetailDialog extends StatelessWidget {
   final Function(Worker)? onRetireWorker;
 
   const WorkerDetailDialog({
-    Key? key,
+    super.key,
     required this.worker,
     required this.isAssigned,
     required this.specialtyColor,
     required this.onUpdateWorker,
     this.onIncapacitateWorker,
     this.onRetireWorker,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

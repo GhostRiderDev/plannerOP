@@ -22,7 +22,7 @@ class WorkersContent extends StatelessWidget {
   final Function(Worker, Worker) onUpdateWorker;
 
   const WorkersContent({
-    Key? key,
+    super.key,
     required this.searchQuery,
     required this.currentFilter,
     this.selectedFaultType,
@@ -30,7 +30,7 @@ class WorkersContent extends StatelessWidget {
     required this.onFaultTypeChanged,
     required this.onAddWorker,
     required this.onUpdateWorker,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

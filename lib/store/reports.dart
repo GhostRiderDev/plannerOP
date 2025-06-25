@@ -21,7 +21,7 @@ class ReportsProvider extends ChangeNotifier {
 
   // Datos
   List<String> _areas = [];
-  List<int> _zones = List.generate(10, (index) => index + 1);
+  final List<int> _zones = List.generate(10, (index) => index + 1);
   List<String> _motorships = [];
   final List<String> _statuses = [
     "Completada",

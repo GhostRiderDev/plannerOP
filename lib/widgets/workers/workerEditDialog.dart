@@ -19,11 +19,11 @@ class WorkerEditDialog extends StatefulWidget {
   final Function(Worker, Worker) onUpdateWorker;
 
   const WorkerEditDialog({
-    Key? key,
+    super.key,
     required this.worker,
     required this.specialtyColor,
     required this.onUpdateWorker,
-  }) : super(key: key);
+  });
 
   @override
   State<WorkerEditDialog> createState() => _WorkerEditDialogState();

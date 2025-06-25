@@ -11,14 +11,14 @@ class WorkerActionsBar extends StatelessWidget {
   final VoidCallback? onRetire;
 
   const WorkerActionsBar({
-    Key? key,
+    super.key,
     required this.worker,
     required this.specialtyColor,
     required this.onClose,
     required this.onEdit,
     this.onIncapacitate,
     this.onRetire,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

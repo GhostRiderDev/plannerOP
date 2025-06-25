@@ -277,14 +277,12 @@ class WorkerService {
         'code': worker.code,
       };
 
-      if (worker.idArea != null && worker.idArea != 0) {
+      if (worker.idArea != 0) {
         body['id_area'] = worker.idArea;
       }
 
-      if (worker.failures != null) {
-        body['failures'] = worker.failures;
-      }
-
+      body['failures'] = worker.failures;
+    
       // Añadir fechas específicas según el estado
       if (worker.status == WorkerStatus.incapacitated) {
         if (worker.incapacityStartDate != null) {

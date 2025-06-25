@@ -10,7 +10,7 @@ Widget buildServiceSelector(
   Function(int) onServicesChanged,
 ) {
   // Obtener la tarea seleccionada (si hay alguna)
-  final Task? selectedTask = availableTasks.firstWhere(
+  final Task selectedTask = availableTasks.firstWhere(
     (task) => task.id == selectedServiceId,
     orElse: () => Task(id: -1, name: ''),
   );
@@ -34,7 +34,7 @@ Widget buildServiceSelector(
           _showSingleServiceSelector(context, availableTasks, selectedServiceId,
               (newSelectedId) {
             // Convertir el ID único a una lista con un solo elemento
-            onServicesChanged(newSelectedId != null ? newSelectedId : 0);
+            onServicesChanged(newSelectedId ?? 0);
           });
         },
         child: Container(
@@ -89,19 +89,6 @@ Widget buildServiceSelector(
           ),
         ),
       ),
-
-      // Mensaje de validación si es necesario
-      if (selectedServiceId == null)
-        Padding(
-          padding: const EdgeInsets.only(top: 8.0, left: 4.0),
-          child: Text(
-            'Selecciona un servicio',
-            style: TextStyle(
-              color: Colors.red[700],
-              fontSize: 12,
-            ),
-          ),
-        ),
     ],
   );
 }

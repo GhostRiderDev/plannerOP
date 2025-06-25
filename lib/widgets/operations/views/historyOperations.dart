@@ -15,9 +15,9 @@ class HistoryOperationsView extends StatefulWidget {
   final String searchQuery;
 
   const HistoryOperationsView({
-    Key? key,
+    super.key,
     required this.searchQuery,
-  }) : super(key: key);
+  });
 
   @override
   State<HistoryOperationsView> createState() => _HistoryOperationsViewState();
@@ -317,10 +317,10 @@ class _HistoryOperationsViewState extends State<HistoryOperationsView> {
                           const SizedBox(height: 8), // Espacio entre tarjetas
                         ],
                       );
-                    }).toList(),
+                    }),
                   ],
                 );
-              }).toList(),
+              }),
             ],
           ),
         );
@@ -374,7 +374,7 @@ class _HistoryOperationsViewState extends State<HistoryOperationsView> {
                           value: area,
                           child: Text(area),
                         ))
-                    .toList(),
+                    ,
               ],
               onChanged: (value) {
                 setState(() {

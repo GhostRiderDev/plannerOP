@@ -20,7 +20,7 @@ import 'package:provider/provider.dart';
 import '../components/successDialog.dart';
 
 class AddOperationDialog extends StatefulWidget {
-  const AddOperationDialog({Key? key}) : super(key: key);
+  const AddOperationDialog({super.key});
 
   @override
   State<AddOperationDialog> createState() => AddOperationDialogState();
@@ -51,7 +51,7 @@ class AddOperationDialogState extends State<AddOperationDialog> {
 
   List<Worker> _allWorkers = [];
   List<Area> _areas = [];
-  List<String> _currentTasks = [];
+  final List<String> _currentTasks = [];
   List<Client> _clients = [];
 
   // variable para controlar el estado de carga
@@ -230,7 +230,7 @@ class AddOperationDialogState extends State<AddOperationDialog> {
                             Navigator.of(context).pop();
                             _showSuccessDialog(context);
                           },
-                    child: Container(
+                    child: SizedBox(
                       width: 100,
                       child: Center(
                         child: _isSaving
@@ -359,10 +359,7 @@ class AddOperationDialogState extends State<AddOperationDialog> {
           earliestStartDateTime == null) {
         try {
           final startDate = DateTime.parse(group.startDate!);
-          if (earliestStartDateTime == null) {
-            earliestStartDateTime =
-                DateTime(startDate.year, startDate.month, startDate.day, 0, 0);
-          }
+          earliestStartDateTime ??= DateTime(startDate.year, startDate.month, startDate.day, 0, 0);
         } catch (e) {
           debugPrint('Error al procesar fecha de inicio sin hora: $e');
         }
@@ -380,9 +377,7 @@ class AddOperationDialogState extends State<AddOperationDialog> {
           final timeOnlyStart =
               DateTime(now.year, now.month, now.day, hours, minutes);
 
-          if (earliestStartDateTime == null) {
-            earliestStartDateTime = timeOnlyStart;
-          }
+          earliestStartDateTime ??= timeOnlyStart;
         } catch (e) {
           debugPrint('Error al procesar hora de inicio sin fecha: $e');
         }
@@ -393,10 +388,7 @@ class AddOperationDialogState extends State<AddOperationDialog> {
           latestEndDateTime == null) {
         try {
           final endDate = DateTime.parse(group.endDate!);
-          if (latestEndDateTime == null) {
-            latestEndDateTime =
-                DateTime(endDate.year, endDate.month, endDate.day, 23, 59);
-          }
+          latestEndDateTime ??= DateTime(endDate.year, endDate.month, endDate.day, 23, 59);
         } catch (e) {
           debugPrint('Error al procesar fecha de fin sin hora: $e');
         }
@@ -414,9 +406,7 @@ class AddOperationDialogState extends State<AddOperationDialog> {
           final timeOnlyEnd =
               DateTime(now.year, now.month, now.day, hours, minutes);
 
-          if (latestEndDateTime == null) {
-            latestEndDateTime = timeOnlyEnd;
-          }
+          latestEndDateTime ??= timeOnlyEnd;
         } catch (e) {
           debugPrint('Error al procesar hora de fin sin fecha: $e');
         }

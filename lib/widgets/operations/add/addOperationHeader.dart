@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class AddOperationHeader extends StatelessWidget {
-  const AddOperationHeader({Key? key}) : super(key: key);
+  const AddOperationHeader({super.key});
 
   @override
   Widget build(BuildContext context) {

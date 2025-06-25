@@ -9,12 +9,12 @@ class ReportSummary extends StatelessWidget {
   final String area;
 
   const ReportSummary({
-    Key? key,
+    super.key,
     required this.periodName,
     required this.startDate,
     required this.endDate,
     required this.area,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

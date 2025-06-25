@@ -11,7 +11,7 @@ Widget buildWorkerItem(
   bool? isFinished = false, // Añadir parámetro opcional
 }) {
   // Usar el valor proporcionado o defaultear a false
-  final bool _alimentacionEntregada = alimentacionEntregada ?? false;
+  final bool alimentacionEntregada0 = alimentacionEntregada ?? false;
 
   return Padding(
     padding: const EdgeInsets.only(bottom: 12),
@@ -71,38 +71,38 @@ Widget buildWorkerItem(
               onPressed: () {
                 // Notificar cambio si hay callback
                 if (onAlimentacionChanged != null) {
-                  onAlimentacionChanged(!_alimentacionEntregada);
+                  onAlimentacionChanged(!alimentacionEntregada0);
                   showSuccessToast(context,
-                      "Alimentación ${_alimentacionEntregada ? 'no entregada' : 'entregada'}");
+                      "Alimentación ${alimentacionEntregada0 ? 'no entregada' : 'entregada'}");
                 }
               },
               icon: Icon(
-                _alimentacionEntregada
+                alimentacionEntregada0
                     ? Icons.restaurant
                     : Icons.restaurant_outlined,
-                color: _alimentacionEntregada ? Colors.green : Colors.grey,
+                color: alimentacionEntregada0 ? Colors.green : Colors.grey,
                 size: 18,
               ),
               label: Text(
-                _alimentacionEntregada ? 'Entregada' : 'Pendiente',
+                alimentacionEntregada0 ? 'Entregada' : 'Pendiente',
                 style: TextStyle(
                   color:
-                      _alimentacionEntregada ? Colors.green : Colors.grey[700],
+                      alimentacionEntregada0 ? Colors.green : Colors.grey[700],
                   fontSize: 12,
-                  fontWeight: _alimentacionEntregada
+                  fontWeight: alimentacionEntregada0
                       ? FontWeight.bold
                       : FontWeight.normal,
                 ),
               ),
               style: TextButton.styleFrom(
-                backgroundColor: _alimentacionEntregada
+                backgroundColor: alimentacionEntregada0
                     ? Colors.green.withOpacity(0.1)
                     : Colors.grey.withOpacity(0.05),
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                   side: BorderSide(
-                    color: _alimentacionEntregada
+                    color: alimentacionEntregada0
                         ? Colors.green
                         : Colors.grey.shade300,
                   ),

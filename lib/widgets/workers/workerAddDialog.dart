@@ -9,9 +9,9 @@ class WorkerAddDialog extends StatefulWidget {
   final Function(Worker) onWorkerAdded;
 
   const WorkerAddDialog({
-    Key? key,
+    super.key,
     required this.onWorkerAdded,
-  }) : super(key: key);
+  });
 
   @override
   State<WorkerAddDialog> createState() => _WorkerAddDialogState();

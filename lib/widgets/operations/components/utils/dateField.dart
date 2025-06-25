@@ -11,7 +11,7 @@ class DateField extends StatelessWidget {
   final String? lockedMessage;
 
   const DateField({
-    Key? key,
+    super.key,
     required this.label,
     required this.hint,
     required this.icon,
@@ -20,7 +20,7 @@ class DateField extends StatelessWidget {
     this.isOptional = false,
     this.locked = false,
     this.lockedMessage,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

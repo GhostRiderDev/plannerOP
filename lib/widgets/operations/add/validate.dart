@@ -113,7 +113,7 @@ Future<bool> validateFields({
         }
       } catch (e) {
         debugPrint('Error al procesar IDs de encargados: $e');
-        debugPrint('Texto en controller: ${chargerControl}');
+        debugPrint('Texto en controller: $chargerControl');
       }
     }
 

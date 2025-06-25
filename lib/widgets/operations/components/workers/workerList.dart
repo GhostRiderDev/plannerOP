@@ -23,7 +23,7 @@ class SelectedWorkersList extends StatefulWidget {
   Function(WorkerGroup, List<Worker>)? onWorkersRemovedFromGroup;
 
   SelectedWorkersList({
-    Key? key,
+    super.key,
     required this.selectedGroups,
     required this.availableWorkers,
     required this.onGroupsChanged,
@@ -33,7 +33,7 @@ class SelectedWorkersList extends StatefulWidget {
     this.assignmentId,
     this.onWorkersAddedToGroup,
     this.onWorkersRemovedFromGroup,
-  }) : super(key: key);
+  });
 
   @override
   State<SelectedWorkersList> createState() => _SelectedWorkersListState();
@@ -41,7 +41,7 @@ class SelectedWorkersList extends StatefulWidget {
 
 class _SelectedWorkersListState extends State<SelectedWorkersList> {
   // Estado principal
-  Map<int, double> _workerHours = {};
+  final Map<int, double> _workerHours = {};
   List<Worker> _filteredWorkers = [];
   List<WorkerGroup> _workerGroups = [];
 

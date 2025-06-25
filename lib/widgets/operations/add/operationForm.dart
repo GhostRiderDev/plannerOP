@@ -32,7 +32,7 @@ class OperationForm extends StatefulWidget {
   final Function(Programming) onProgrammingSelected;
 
   const OperationForm({
-    Key? key,
+    super.key,
     required this.zoneController,
     required this.startDateController,
     required this.startTimeController,
@@ -53,7 +53,7 @@ class OperationForm extends StatefulWidget {
     this.endTimeLocked = false,
     this.onScheduleChanged,
     required this.onProgrammingSelected,
-  }) : super(key: key);
+  });
 
   @override
   State<OperationForm> createState() => _AssignmentFormState();
@@ -82,7 +82,6 @@ class _AssignmentFormState extends State<OperationForm> {
       widget.endDateController!.addListener(_onEndDateChanged);
     }
 
-    ;
 
     // Verificar si el area es BUQUE
     _checkIfShipArea(widget.areaController.text);
@@ -250,7 +249,7 @@ class _AssignmentFormState extends State<OperationForm> {
           dateController: widget.startDateController,
           // Añadir key para forzar reconstrucción cuando la fecha cambia
           key: ValueKey(
-              'time_field_${_dateUpdateCounter}_${_timeUpdateCounter}'),
+              'time_field_${_dateUpdateCounter}_$_timeUpdateCounter'),
           locked: widget.startTimeLocked, // Pasar estado de bloqueo
           lockedMessage: widget.startTimeLocked
               ? 'Hora definida por grupo de trabajo'
