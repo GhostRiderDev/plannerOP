@@ -67,16 +67,16 @@ class _DashboardTabState extends State<DashboardTab> {
           context: context,
         ),
         checkAndLoadWorkersIfNeeded(
-          () => mounted,
-          setState,
-          _isLoadingWorkers,
-          context,
+          isMounted: () => mounted,
+          setState: setState,
+          isLoadingWorkers: _isLoadingWorkers,
+          context: context,
         ),
         loadAreas(
-          () => mounted,
-          setState,
-          _isLoadingAreas,
-          context,
+          isMounted: () => mounted,
+          setState: setState,
+          isLoadingAreas: _isLoadingAreas,
+          context: context,
         ),
         loadClients(
           isMounted: () => mounted,
@@ -116,7 +116,10 @@ class _DashboardTabState extends State<DashboardTab> {
             },
           ),
         loadClientProgramming(
-            () => mounted, setState, _isLoadingClientProgramming, context,
+            isMounted: () => mounted,
+            setState: setState,
+            isLoadingClientProgramming: _isLoadingClientProgramming,
+            context: context,
             forceRefresh: forceRefresh)
       ]).catchError((error) {
         debugPrint('Error durante la carga en paralelo: $error');

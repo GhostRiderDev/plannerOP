@@ -3,11 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:plannerop/core/model/user.dart';
+import 'package:plannerop/hooks/loaders/loader.dart';
 import 'package:plannerop/pages/siteSlector.dart';
 import 'package:plannerop/pages/tabs/home.dart';
 import 'package:plannerop/store/auth.dart';
 import 'package:plannerop/store/user.dart';
-import 'package:plannerop/utils/dataManager.dart';
 
 import 'package:plannerop/utils/toast.dart';
 import 'package:plannerop/widgets/operations/components/utils/Loader.dart';
@@ -78,7 +78,10 @@ Future<void> tryAutoLogin(bool mounted, Function setState, bool _isLoading,
 
       // Cargar datos
       try {
-        await DataManager().loadDataAfterAuthentication(context);
+        await loadDataAfterAuthentication(
+          context,
+          isMounted: () => mounted,
+        );
       } catch (dataError) {
         debugPrint('Error cargando datos: $dataError');
       }
@@ -184,7 +187,10 @@ Future<void> login(GlobalKey<FormState> _formKey, BuildContext context,
         }
 
         // Cargar datos
-        await DataManager().loadDataAfterAuthentication(context);
+        await loadDataAfterAuthentication(
+          context,
+          isMounted: () => mounted,
+        );
 
         // Navegar al dashboard
         if (mounted) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:plannerop/hooks/loaders/loader.dart';
 import 'package:plannerop/store/areas.dart';
 import 'package:plannerop/store/auth.dart';
 import 'package:plannerop/store/chargersOp.dart';
@@ -16,7 +17,6 @@ import 'pages/login.dart';
 import 'package:provider/provider.dart';
 import 'package:plannerop/store/workers.dart';
 import 'package:flutter_animated_splash/flutter_animated_splash.dart';
-import 'package:plannerop/utils/dataManager.dart';
 
 Future<void> main() async {
   // Asegúrate de inicializar Flutter
@@ -96,7 +96,7 @@ class _AppState extends State<App> {
 
     // Inicializar el DataManager después del primer frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      DataManager().loadDataAfterAuthentication(context);
+      loadDataAfterAuthentication(context, isMounted: () => mounted);
     });
   }
 

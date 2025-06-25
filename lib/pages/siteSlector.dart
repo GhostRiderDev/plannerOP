@@ -56,7 +56,7 @@ class SiteSelector {
     return showDialog<Site>(
       context: context,
       barrierDismissible: false,
-      // ✅ USAR WillPopScope PARA EVITAR CERRAR CON BACK
+      //  USAR WillPopScope PARA EVITAR CERRAR CON BACK
       builder: (context) => WillPopScope(
         onWillPop: () async => false, // Evitar cerrar con botón atrás
         child: Dialog(
