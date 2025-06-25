@@ -1,10 +1,22 @@
 # This is a generated file; do not edit or check into version control.
+flutter_native_splash=C:\\Users\\BANANOVA\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\flutter_native_splash-2.3.0\\
+flutter_secure_storage=C:\\Users\\BANANOVA\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\flutter_secure_storage-9.2.4\\
+flutter_secure_storage_linux=C:\\Users\\BANANOVA\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\flutter_secure_storage_linux-1.2.3\\
+flutter_secure_storage_macos=C:\\Users\\BANANOVA\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\flutter_secure_storage_macos-3.1.3\\
+flutter_secure_storage_web=C:\\Users\\BANANOVA\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\flutter_secure_storage_web-1.2.1\\
+flutter_secure_storage_windows=C:\\Users\\BANANOVA\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\flutter_secure_storage_windows-3.1.2\\
+fluttertoast=C:\\Users\\BANANOVA\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\fluttertoast-8.2.12\\
+integration_test=C:\\Users\\BANANOVA\\dev\\flutter\\packages\\integration_test\\
 path_provider=C:\\Users\\BANANOVA\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\path_provider-2.1.5\\
 path_provider_android=C:\\Users\\BANANOVA\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\path_provider_android-2.2.15\\
 path_provider_foundation=C:\\Users\\BANANOVA\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\path_provider_foundation-2.4.1\\
 path_provider_linux=C:\\Users\\BANANOVA\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\path_provider_linux-2.2.1\\
 path_provider_windows=C:\\Users\\BANANOVA\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\path_provider_windows-2.3.0\\
-printing=C:\\Users\\BANANOVA\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\printing-5.14.2\\
+permission_handler=C:\\Users\\BANANOVA\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\permission_handler-11.4.0\\
+permission_handler_android=C:\\Users\\BANANOVA\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\permission_handler_android-12.1.0\\
+permission_handler_apple=C:\\Users\\BANANOVA\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\permission_handler_apple-9.4.7\\
+permission_handler_html=C:\\Users\\BANANOVA\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\permission_handler_html-0.1.3+5\\
+permission_handler_windows=C:\\Users\\BANANOVA\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\permission_handler_windows-0.2.1\\
 share_plus=C:\\Users\\BANANOVA\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\share_plus-10.1.4\\
 shared_preferences=C:\\Users\\BANANOVA\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\shared_preferences-2.5.2\\
 shared_preferences_android=C:\\Users\\BANANOVA\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\shared_preferences_android-2.4.6\\

@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:plannerop/core/model/incapacity.dart';
 import 'package:plannerop/core/model/worker.dart';
+import 'package:plannerop/services/faults/fault.dart';
 import 'package:plannerop/services/workers/workers.dart';
 import 'package:plannerop/dto/workers/fetchWorkers.dart';
+import 'package:plannerop/store/incapacities.dart';
+import 'package:provider/provider.dart';
 
 class WorkersProvider with ChangeNotifier {
   // Lista de trabajadores
@@ -16,15 +20,7 @@ class WorkersProvider with ChangeNotifier {
 
   // Servicio de trabajadores
   final WorkerService _workerService = WorkerService();
-
-  // Mapeo de especialidades a colores
-  final Map<String, Color> _specialtyColors = {
-    'CARGA GENERAL': const Color(0xFF4299E1), // Azul
-    'CARGA REFRIGERADA': const Color(0xFF48BB78), // Verde
-    'CARGA PELIGROSA': const Color(0xFFED8936), // Naranja
-    'CARGA ESPECIAL': const Color(0xFFF56565), // Rojo
-    'CARGA A GRANEL': const Color(0xFF9F7AEA), // Púrpura
-  };
+  final FaultService _faultService = FaultService();
 
   // Getters
   List<Worker> get workers => [..._workers];
@@ -44,42 +40,65 @@ class WorkersProvider with ChangeNotifier {
         .toList();
   }
 
+  int get totalWorkerWithoutRetired =>
+      _workers.where((w) => w.status != WorkerStatus.deactivated).length;
+
+  List<Worker> get workersWithoutRetiredAndDisabled => _workers
+      .where((w) =>
+          w.status != WorkerStatus.deactivated &&
+          w.status != WorkerStatus.incapacitated)
+      .toList();
+
   int get totalWorkers => _workers.length;
+
+  List<Worker> getWorkersAvailable() {
+    return _workers.where((w) => w.status == WorkerStatus.available).toList();
+  }
 
   int get assignedWorkers =>
       _workers.where((w) => w.status == WorkerStatus.assigned).length;
 
+  int get disabledWorkers =>
+      _workers.where((w) => w.status == WorkerStatus.incapacitated).length;
+
+  int get retiredWorkers =>
+      _workers.where((w) => w.status == WorkerStatus.deactivated).length;
+
   int get availableWorkers =>
       _workers.where((w) => w.status == WorkerStatus.available).length;
 
-  Color getSpecialtyColor(String area) {
-    return _specialtyColors[area] ??
-        const Color(0xFF718096); // Gris por defecto
+  Worker getWorkerById(int id) {
+    return _workers.firstWhere((w) => w.id == id,
+        orElse: () => Worker(
+              id: 0,
+              name: '',
+              area: '',
+              phone: '',
+              document: '',
+              status: WorkerStatus.available,
+              startDate: DateTime.now(),
+              code: '',
+              failures: 0,
+              idArea: 0,
+            ));
   }
 
   // Método modificado para cargar trabajadores solo la primera vez
   Future<void> fetchWorkersIfNeeded(BuildContext context) async {
-    // Si ya cargamos datos previamente, no hacemos nada
-    if (_hasLoadedInitialData) {
-      debugPrint(
-          'Omitiendo fetchWorkers: los datos ya fueron cargados anteriormente');
-      return;
-    }
-
     _isLoading = true;
     _hasError = false;
     _errorMessage = '';
     notifyListeners();
 
     try {
-      debugPrint('Cargando trabajadores desde API (primera vez)...');
+      // debugPrint('Cargando trabajadores desde API (primera vez)...');
       final FetchWorkersDto result = await _workerService.fetchWorkers(context);
 
       if (result.isSuccess && result.workers.isNotEmpty) {
         _workers.clear();
         _workers.addAll(result.workers);
-        debugPrint(
-            'Datos iniciales cargados correctamente: ${_workers.length} trabajadores');
+        // debugPrint(
+        //     'Datos iniciales cargados correctamente: ${_workers.length} trabajadores');
       } else {
         _hasError = true;
         _errorMessage =
@@ -97,139 +116,190 @@ class WorkersProvider with ChangeNotifier {
     }
   }
 
-  // Método para cargar los trabajadores desde la API
-  Future<void> fetchWorkers(BuildContext context) async {
-    _isLoading = true;
-    _hasError = false;
-    _errorMessage = '';
-    notifyListeners();
-
+  // Métodos para manipular los trabajadores
+  Future<Map<String, dynamic>> addWorker(
+      Worker worker, BuildContext context) async {
     try {
-      final FetchWorkersDto result = await _workerService.fetchWorkers(context);
+      // Llamar al servicio y esperar respuesta
+      final result = await _workerService.registerWorker(worker, context);
 
-      if (result.isSuccess && result.workers.isNotEmpty) {
-        _workers.clear();
-        _workers.addAll(result.workers);
-      } else {
-        _hasError = true;
-        _errorMessage = 'Error al cargar los trabajadores';
+      // Si fue exitoso, agregar a la lista local
+      if (result['success']) {
+        _workers.add(worker);
+        notifyListeners();
       }
+
+      // Devolver el resultado para que la UI pueda mostrar mensajes apropiados
+      return result;
     } catch (e) {
-      _hasError = true;
-      _errorMessage = 'Error de conexión: ${e.toString()}';
-    } finally {
-      _isLoading = false;
-      _hasLoadedInitialData =
-          true; // Actualizar el flag también en recargas forzadas
-      notifyListeners();
+      debugPrint('Error en addWorker: $e');
+      return {'success': false, 'message': 'Error al agregar trabajador: $e'};
     }
   }
 
-  // Métodos para manipular los trabajadores
-  void addWorker(Worker worker, BuildContext context) {
-    _workers.add(worker);
-    _workerService.registerWorker(worker, context);
-    notifyListeners();
-  }
-
-  List<Worker> getWorkersByStatus(WorkerStatus status) {
+  List<Worker> fetchWorkersByStatus(WorkerStatus status) {
     return _workers.where((w) => w.status == status).toList();
   }
 
-  void updateWorker(Worker oldWorker, Worker updatedWorker) {
-    final index = _workers.indexWhere((w) => w.name == oldWorker.name);
-    if (index >= 0) {
-      _workers[index] = updatedWorker;
-      notifyListeners();
+  // Método  para actualizar un trabajador
+  Future<bool> updateWorker(
+      Worker oldWorker, Worker newWorker, BuildContext context) async {
+    try {
+      // Llamar al servicio para actualizar en la API
+      final success = await _workerService.updateWorker(newWorker, context);
+      if (success) {
+        // debugPrint('Trabajador actualizado correctamente en la API');
+        // Actualizar en la lista local
+        final index = _workers.indexWhere((w) => w.id == oldWorker.id);
+        if (index >= 0) {
+          _workers[index] = newWorker;
+          notifyListeners();
+        }
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Error en updateWorker del provider: $e');
+      return false;
     }
   }
 
-  void deleteWorker(Worker worker) {
-    _workers.removeWhere((w) => w.name == worker.name);
-    notifyListeners();
-  }
-
-  void updateWorkerStatus(Worker worker, WorkerStatus newStatus) {
-    final index = _workers.indexWhere((w) => w.name == worker.name);
-    if (index >= 0) {
-      final updatedWorker = Worker(
+  Future<bool> retireWorker(
+      Worker worker, DateTime retirementDate, BuildContext context) async {
+    // Crear una copia del trabajador con los nuevos datos
+    final updatedWorker = Worker(
+        id: worker.id,
         name: worker.name,
         area: worker.area,
         phone: worker.phone,
         document: worker.document,
-        status: newStatus,
+        status: WorkerStatus.deactivated,
         startDate: worker.startDate,
         endDate: worker.endDate,
         code: worker.code,
-      );
-      _workers[index] = updatedWorker;
-      notifyListeners();
-    }
+        deactivationDate: retirementDate,
+        failures: worker.failures);
+
+    // Usar el método general
+    return updateWorker(worker, updatedWorker, context);
   }
 
-  List<Worker> searchWorkers(String query) {
-    return _workers
-        .where(
-            (worker) => worker.name.toLowerCase().contains(query.toLowerCase()))
-        .toList();
-  }
-
-  Color getColorForArea(String area) {
-    return _specialtyColors[area] ?? const Color(0xFF718096);
-  }
-
-  // Método para asignar un trabajador (cambia su estado a asignado)
-  // MANTIENE LA FIRMA ORIGINAL
+  // Método para asignar un trabajador
   void assignWorker(Worker worker, DateTime endDate) {
     final index = _workers.indexWhere((w) => w.name == worker.name);
     if (index >= 0) {
       final updatedWorker = Worker(
-        name: worker.name,
-        area: worker.area,
-        phone: worker.phone,
-        document: worker.document,
-        status: WorkerStatus.assigned,
-        startDate: worker.startDate,
-        endDate: endDate,
-        code: worker.code,
-      );
+          id: worker.id,
+          name: worker.name,
+          area: worker.area,
+          phone: worker.phone,
+          document: worker.document,
+          status: WorkerStatus.assigned,
+          startDate: worker.startDate,
+          endDate: endDate,
+          code: worker.code,
+          incapacityEndDate: worker.incapacityEndDate,
+          incapacityStartDate: worker.incapacityStartDate,
+          failures: worker.failures);
       _workers[index] = updatedWorker;
       notifyListeners();
     }
   }
 
-  // Método para liberar un trabajador (cambia su estado a disponible)
-  // MANTIENE LA FIRMA ORIGINAL
-  void releaseWorker(Worker worker) {
-    final index = _workers.indexWhere((w) => w.name == worker.name);
-    if (index >= 0) {
+  Future<bool> incapacitateWorker(
+    Worker worker,
+    DateTime startDate,
+    DateTime endDate,
+    BuildContext context, {
+    String? tipo,
+    String? causa,
+  }) async {
+    try {
+      // 1. Primero registrar la incapacidad en /inability
+      if (tipo != null && causa != null) {
+        final incapacityProvider =
+            Provider.of<IncapacityProvider>(context, listen: false);
+
+        final incapacity = Incapacity(
+          workerId: worker.id,
+          type: incapacityProvider.mapStringToType(tipo),
+          cause: incapacityProvider.mapStringToCause(causa),
+          startDate: startDate,
+          endDate: endDate,
+        );
+
+        final incapacitySuccess =
+            await incapacityProvider.registerIncapacity(incapacity, context);
+        if (!incapacitySuccess) {
+          debugPrint('Error al registrar incapacidad en /inability');
+          return false;
+        }
+      }
+
+      // 2. Luego actualizar el worker (como ya se hacía)
       final updatedWorker = Worker(
+        id: worker.id,
         name: worker.name,
         area: worker.area,
         phone: worker.phone,
         document: worker.document,
-        status: WorkerStatus.available,
+        status: WorkerStatus.incapacitated,
         startDate: worker.startDate,
-        endDate: null,
+        endDate: worker.endDate,
         code: worker.code,
+        incapacityStartDate: startDate,
+        incapacityEndDate: endDate,
+        failures: worker.failures,
+        deactivationDate: worker.deactivationDate,
       );
-      _workers[index] = updatedWorker;
-      notifyListeners();
+
+      return updateWorker(worker, updatedWorker, context);
+    } catch (e) {
+      debugPrint('Error en incapacitateWorker: $e');
+      return false;
     }
   }
 
-  Map<String, dynamic> workerToMap(Worker worker) {
-    return {
-      'id': worker.document,
-      'name': worker.name,
-      'area': worker.area,
-      'document': worker.document,
-    };
+  // Método para asignar un trabajador a  una operación
+  Future<bool> assignWorkerToOperation(
+      Worker worker, BuildContext context) async {
+    try {
+      // Llamar al servicio para actualizar el estado en el backend
+      final success = await _workerService.updateWorkerStatus(
+          worker.id, "assigned", context);
+
+      if (success) {
+        // Actualizar estado localmente
+        final index = _workers.indexWhere((w) => w.id == worker.id);
+        if (index >= 0) {
+          final updatedWorker = Worker(
+              id: worker.id,
+              name: worker.name,
+              area: worker.area,
+              phone: worker.phone,
+              document: worker.document,
+              status: WorkerStatus.assigned,
+              startDate: worker.startDate,
+              endDate: null,
+              code: worker.code,
+              incapacityEndDate: worker.incapacityEndDate,
+              incapacityStartDate: worker.incapacityStartDate,
+              failures: worker.failures);
+          _workers[index] = updatedWorker;
+          notifyListeners();
+        }
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Error al asignar trabajador: $e');
+      return false;
+    }
   }
 
-  // Método alternativo para liberar usando el Worker completo
-  // MANTIENE LA FIRMA ORIGINAL
-  void releaseWorkerObject(Worker worker) {
-    releaseWorker(worker);
+  void clear() {
+    _workers.clear();
+    _hasLoadedInitialData = false;
+    notifyListeners();
   }
 }

@@ -1,0 +1,6 @@
+{
+    "cmake.sourceDirectory": "C:/dev/flutter/plannerop/linux",
+    "files.associations": {
+        "stdlib.h": "c"
+    }
+}

@@ -1,14 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:jwt_decoder/jwt_decoder.dart';
-import 'package:plannerop/core/model/user.dart';
-import 'package:plannerop/dto/auth/signin.dart';
-import 'package:plannerop/pages/supervisor/home.dart';
-import 'package:plannerop/services/auth/signin.dart';
-import 'package:plannerop/store/auth.dart';
-import 'package:plannerop/store/user.dart';
-import 'package:provider/provider.dart';
+import 'package:lottie/lottie.dart';
+import 'package:plannerop/hooks/auth/useLogin.dart';
+import 'package:plannerop/widgets/operations/components/utils/Loader.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -23,7 +17,8 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _passwordController = TextEditingController();
   final FocusNode _usernameFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
-  final SigninService _signinService = SigninService();
+  bool _isLoading = false;
+  bool _passVisibility = true;
 
   void _onFocusChange() {
     setState(() {});
@@ -34,6 +29,11 @@ class _LoginPageState extends State<LoginPage> {
     super.initState();
     _usernameFocusNode.addListener(_onFocusChange);
     _passwordFocusNode.addListener(_onFocusChange);
+
+    // Intentar auto-login al iniciar la página
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      tryAutoLogin(mounted, setState, _isLoading, context);
+    });
   }
 
   @override
@@ -47,51 +47,16 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  Future<void> _login() async {
-    if (_formKey.currentState!.validate()) {
-      // Aquí puedes agregar la lógica de autenticación
-      // Si el inicio de sesión es exitoso, redirige a la página de inicio del supervisor
-      final ResSigninDto response = await _signinService.signin(
-        _usernameController.text,
-        _passwordController.text,
-      );
-
-      if (response.isSuccess) {
-        // Guarda el token de acceso en el provider de autenticación
-        Provider.of<AuthProvider>(context, listen: false)
-            .setAccessToken(response.accessToken);
-
-        // Decodificar el token
-        final decodedToken = JwtDecoder.decode(response.accessToken);
-
-        Provider.of<UserProvider>(context, listen: false).setUser(User(
-          name: decodedToken['username'],
-          id: '${decodedToken['id']}',
-          dni: decodedToken['dni'],
-          phone: decodedToken['phone'],
-        ));
-
-        debugPrint('Token decodificado: $decodedToken');
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const SupervisorHome()),
-        );
-        return;
-      }
-
-      // Si el inicio de sesión falla, muestra un mensaje de error
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Usuario o contraseña incorrectos'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    // Si está cargando (intentando auto-login), mostrar spinner
+    if (_isLoading) {
+      return AppLoader(
+        showAsScaffold: false,
+        message: 'Cargando...',
+        size: LoaderSize.large,
+      );
+    }
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -104,12 +69,7 @@ class _LoginPageState extends State<LoginPage> {
                   bottomLeft: Radius.circular(20.0),
                   bottomRight: Radius.circular(20.0),
                 ),
-                child: SvgPicture.asset(
-                  'assets/auth.svg',
-                  width: double.infinity,
-                  fit: BoxFit.contain,
-                  height: 300,
-                ),
+                child: Lottie.asset('assets/auth-animation.json'),
               ),
             ),
             Expanded(
@@ -129,6 +89,7 @@ class _LoginPageState extends State<LoginPage> {
                               BorderRadius.circular(12)),
                         ),
                         child: TextFormField(
+                          key: Key('signin_username_field'),
                           controller: _usernameController,
                           focusNode: _usernameFocusNode,
                           decoration: const InputDecoration(
@@ -158,16 +119,27 @@ class _LoginPageState extends State<LoginPage> {
                               BorderRadius.circular(12)),
                         ),
                         child: TextFormField(
+                          key: Key('signin_password_field'),
                           controller: _passwordController,
                           focusNode: _passwordFocusNode,
-                          decoration: const InputDecoration(
+                          obscureText: _passVisibility,
+                          decoration: InputDecoration(
                             labelText: 'Contraseña',
                             prefixIcon: Icon(Icons.lock),
                             border: InputBorder.none,
                             filled: true,
                             fillColor: Colors.white,
+                            suffixIcon: IconButton(
+                              icon: _passVisibility
+                                  ? Icon(Icons.visibility_off)
+                                  : Icon(Icons.visibility),
+                              onPressed: () {
+                                _passVisibility = !_passVisibility;
+
+                                setState(() {});
+                              },
+                            ),
                           ),
-                          obscureText: true,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return 'Por favor ingrese su contraseña';
@@ -180,7 +152,13 @@ class _LoginPageState extends State<LoginPage> {
                       NeumorphicButton(
                         onPressed: () async {
                           if (_formKey.currentState!.validate()) {
-                            await _login();
+                            await login(
+                              _formKey,
+                              context,
+                              mounted,
+                              _usernameController.text.trim(),
+                              _passwordController.text.trim(),
+                            );
                           }
                         },
                         style: NeumorphicStyle(
@@ -197,6 +175,7 @@ class _LoginPageState extends State<LoginPage> {
                         child: const Center(
                           child: Text(
                             'Ingresar',
+                            key: Key('signin_button'),
                             style: TextStyle(
                               fontSize: 20, // Aumenta el tamaño del texto
                               fontWeight: FontWeight.bold,
@@ -204,6 +183,27 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                         ),
+                      ),
+
+                      // Footer con "Created by" y logo
+                      const SizedBox(height: 90),
+                      Column(
+                        children: [
+                          Text(
+                            'Created by',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Image.asset(
+                            'assets/cargoban.png',
+                            height: 100, // Tamaño controlado de la imagen
+                            fit: BoxFit.contain,
+                          ),
+                        ],
                       ),
                     ],
                   ),

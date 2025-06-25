@@ -14,16 +14,14 @@ class AreaService {
         await http.get(url, headers: {'Authorization': 'Bearer $token'});
 
     if (response.statusCode == 200) {
-      debugPrint('Áreas obtenidas correctamente');
       final jsonResponse = jsonDecode(response.body);
-      debugPrint(jsonResponse.toString());
+      // debugPrint(jsonResponse.toString());
       List<Area> areas = [];
       for (var area in jsonResponse) {
-        areas.add(
-            Area(id: area['id'], name: area['name'], userId: area['id_user']));
+        if (area['status'] != 'ACTIVE') continue; // Filtrar áreas inactivas
+        areas.add(Area(id: area['id'], name: area['name']));
       }
 
-      debugPrint('Áreas obtenidas correctamente****');
       return areas;
     } else {
       debugPrint('Error al obtener las áreas');
