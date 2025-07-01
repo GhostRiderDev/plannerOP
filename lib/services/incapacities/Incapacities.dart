@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:plannerop/core/model/incapacity.dart';
-import 'package:plannerop/store/auth.dart';
+import 'package:plannerop/providers/auth.dart';
 import 'package:plannerop/utils/date.dart';
 import 'package:provider/provider.dart';
 

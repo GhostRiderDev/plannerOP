@@ -1,8 +1,8 @@
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:plannerop/core/model/operation.dart';
 import 'package:plannerop/core/model/workerGroup.dart';
-import 'package:plannerop/store/operations.dart';
-import 'package:plannerop/store/feedings.dart';
+import 'package:plannerop/providers/operations.dart';
+import 'package:plannerop/providers/feedings.dart';
 import 'package:plannerop/utils/feedingUtils.dart';
 import 'package:plannerop/utils/groups/groups.dart';
 import 'package:plannerop/utils/groups/workerList.dart';

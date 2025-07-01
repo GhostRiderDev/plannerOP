@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
-import 'package:plannerop/store/operations.dart';
+import 'package:plannerop/providers/operations.dart';
 import 'package:provider/provider.dart';
-import 'package:plannerop/store/workers.dart';
+import 'package:plannerop/providers/workers.dart';
 
 class Cifras extends StatelessWidget {
   const Cifras({super.key});

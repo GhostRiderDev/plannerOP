@@ -9,13 +9,11 @@ import 'package:plannerop/services/operations/operationReports.dart';
 
 import 'package:plannerop/utils/charts/mapper.dart';
 
-import 'package:plannerop/utils/toast.dart';
 import 'package:plannerop/widgets/operations/components/utils/Loader.dart';
 import 'package:plannerop/widgets/reports/exports/excelGenerator.dart';
 import 'package:plannerop/widgets/reports/exports/reportDataProcessor.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter/painting.dart' show Border, BorderSide;
-import 'package:permission_handler/permission_handler.dart';
 
 class ExportOptions extends StatefulWidget {
   final String periodName;
@@ -109,9 +107,7 @@ class _ExportOptionsState extends State<ExportOptions> {
         if (widget.zone != null) {
           int? operationZone;
           try {
-            operationZone = operation.zone != null
-                ? int.tryParse(operation.zone.toString())
-                : null;
+            operationZone = int.tryParse(operation.zone.toString());
           } catch (e) {
             operationZone = null;
           }
@@ -151,16 +147,12 @@ class _ExportOptionsState extends State<ExportOptions> {
       context: context,
       barrierDismissible: false,
       builder: (context) {
-        return AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          content: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20.0),
-              child: AppLoader(
-                message: 'Exportando $type...',
-                color: Colors.blue,
-                size: LoaderSize.medium,
-              )),
+        return AppLoader(
+          message: 'Exportando $type...',
+          color: Colors.blue,
+          size: LoaderSize.medium,
+          backgroundColor: Colors.transparent,
+          showAsScaffold: false,
         );
       },
     );
@@ -178,7 +170,7 @@ class _ExportOptionsState extends State<ExportOptions> {
 
   Future<void> _exportDetailedExcel() async {
     try {
-      widget.onExport('Generando Excel detallado...');
+      // widget.onExport('Generando Excel detallado...');
 
       if (_filteredAssignments.isEmpty) {
         widget.onExport('No hay datos para exportar');
@@ -189,7 +181,7 @@ class _ExportOptionsState extends State<ExportOptions> {
       final reportData = await ReportDataProcessor.processOperations(
           _filteredAssignments, _getReportTitle(), _getDateRange(), context);
 
-      // ✅ USAR SOLO DIRECTORIO TEMPORAL (NO NECESITA PERMISOS)
+      //  USAR SOLO DIRECTORIO TEMPORAL (NO NECESITA PERMISOS)
       final tempDir = await getTemporaryDirectory();
       final fileName =
           'reporte_operaciones_${DateTime.now().millisecondsSinceEpoch}.xlsx';
@@ -205,7 +197,7 @@ class _ExportOptionsState extends State<ExportOptions> {
         text: 'Adjunto el reporte detallado de operaciones.',
       );
 
-      widget.onExport('Excel detallado exportado correctamente');
+      // widget.onExport('Excel detallado exportado correctamente');
     } catch (e) {
       debugPrint('Error al exportar Excel: $e');
       widget.onExport('Error al exportar: $e');
@@ -232,11 +224,6 @@ class _ExportOptionsState extends State<ExportOptions> {
     }
 
     return reportTitle;
-  }
-
-  void _showErrorSnackbar(dynamic error) {
-    showErrorToast(
-        context, 'Error al exportar: ${error.toString().substring(0, 50)}');
   }
 
   String _getDateRange() {

@@ -6,7 +6,7 @@ import 'package:plannerop/widgets/operations/components/OperationCard.dart';
 import 'package:plannerop/widgets/operations/components/utils/Loader.dart';
 import 'package:plannerop/widgets/operations/components/workers/buildWorkerItem.dart';
 import 'package:plannerop/widgets/operations/components/utils/emptyState.dart';
-import 'package:plannerop/store/operations.dart';
+import 'package:plannerop/providers/operations.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';

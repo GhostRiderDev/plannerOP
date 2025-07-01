@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:plannerop/hooks/loaders/loader.dart';
-import 'package:plannerop/store/areas.dart';
-import 'package:plannerop/store/auth.dart';
-import 'package:plannerop/store/chargersOp.dart';
-import 'package:plannerop/store/clients.dart';
-import 'package:plannerop/store/faults.dart';
-import 'package:plannerop/store/feedings.dart';
-import 'package:plannerop/store/incapacities.dart';
-import 'package:plannerop/store/operations.dart';
-import 'package:plannerop/store/programmings.dart';
-import 'package:plannerop/store/task.dart';
-import 'package:plannerop/store/user.dart';
-import 'package:plannerop/store/workerGroup.dart';
+import 'package:plannerop/providers/areas.dart';
+import 'package:plannerop/providers/auth.dart';
+import 'package:plannerop/providers/chargersOp.dart';
+import 'package:plannerop/providers/clients.dart';
+import 'package:plannerop/providers/faults.dart';
+import 'package:plannerop/providers/feedings.dart';
+import 'package:plannerop/providers/incapacities.dart';
+import 'package:plannerop/providers/operations.dart';
+import 'package:plannerop/providers/programmings.dart';
+import 'package:plannerop/providers/task.dart';
+import 'package:plannerop/providers/user.dart';
+import 'package:plannerop/providers/workerGroup.dart';
 import 'pages/login.dart';
 import 'package:provider/provider.dart';
-import 'package:plannerop/store/workers.dart';
+import 'package:plannerop/providers/workers.dart';
 import 'package:flutter_animated_splash/flutter_animated_splash.dart';
 
 Future<void> main() async {
@@ -23,6 +23,10 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await dotenv.load(fileName: ".env");
+
+  final hashKey = dotenv.get('HASH_KEY', fallback: 'default_hash_key');
+  debugPrint(
+      '🔑 HASH_KEY en main: longitud=${hashKey.length}, preview=${hashKey.substring(0, 4)}...');
   runApp(
     MultiProvider(
       providers: [

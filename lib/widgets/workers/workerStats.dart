@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:plannerop/widgets/workers/workerFilter.dart';
-import 'package:plannerop/store/faults.dart';
+import 'package:plannerop/providers/faults.dart';
 import 'package:provider/provider.dart';
 
 class WorkerStatsCards extends StatelessWidget {

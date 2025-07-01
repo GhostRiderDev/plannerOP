@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:plannerop/core/model/programming.dart';
-import 'package:plannerop/store/programmings.dart';
+import 'package:plannerop/providers/programmings.dart';
 import 'package:plannerop/widgets/operations/components/utils/Loader.dart';
 import 'package:plannerop/widgets/operations/components/workers/selectorModal.dart';
 import 'package:provider/provider.dart';

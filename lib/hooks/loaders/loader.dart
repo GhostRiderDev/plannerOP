@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:plannerop/store/areas.dart';
-import 'package:plannerop/store/auth.dart';
-import 'package:plannerop/store/operations.dart';
-import 'package:plannerop/store/chargersOp.dart';
-import 'package:plannerop/store/clients.dart';
-import 'package:plannerop/store/faults.dart';
-import 'package:plannerop/store/programmings.dart';
-import 'package:plannerop/store/task.dart';
-import 'package:plannerop/store/workers.dart';
+import 'package:plannerop/providers/areas.dart';
+import 'package:plannerop/providers/auth.dart';
+import 'package:plannerop/providers/operations.dart';
+import 'package:plannerop/providers/chargersOp.dart';
+import 'package:plannerop/providers/clients.dart';
+import 'package:plannerop/providers/faults.dart';
+import 'package:plannerop/providers/programmings.dart';
+import 'package:plannerop/providers/task.dart';
+import 'package:plannerop/providers/workers.dart';
 import 'package:plannerop/utils/toast.dart';
 import 'package:provider/provider.dart';
 

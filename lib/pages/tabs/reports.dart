@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:plannerop/store/reports.dart';
+import 'package:plannerop/providers/reports.dart';
 import 'package:plannerop/widgets/operations/components/utils/Loader.dart';
 import 'package:plannerop/widgets/reports/components/charFactory.dart';
 import 'package:plannerop/widgets/reports/components/charSelector.dart';

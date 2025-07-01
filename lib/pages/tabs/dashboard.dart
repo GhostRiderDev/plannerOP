@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:plannerop/core/model/user.dart';
 import 'package:plannerop/hooks/loaders/loader.dart';
-import 'package:plannerop/store/operations.dart';
-import 'package:plannerop/store/user.dart';
+import 'package:plannerop/pages/siteSelector.dart';
+import 'package:plannerop/providers/auth.dart';
+import 'package:plannerop/providers/operations.dart';
+import 'package:plannerop/providers/user.dart';
 import 'package:plannerop/utils/toast.dart';
 import 'package:plannerop/widgets/dashboard/quickActions.dart';
 import 'package:plannerop/widgets/dashboard/recentOps.dart';
@@ -173,9 +175,95 @@ class _DashboardTabState extends State<DashboardTab> {
         _isLoadingClientProgramming;
   }
 
+  Future<void> _changeSite() async {
+    try {
+      // Mostrar diálogo de confirmación
+      final shouldChange = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Cambiar Sede'),
+          content: const Text(
+              '¿Deseas cambiar la sede actual? Esto requerirá reconfigurar tus datos.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Cambiar'),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldChange != true) return;
+
+      // Mostrar loader
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AppLoader(
+          message: 'Cambiando sede...',
+          color: Colors.blue,
+          size: LoaderSize.medium,
+        ),
+      );
+
+      // ✅ USAR MÉTODO SIMPLE: Limpiar + Seleccionar + Recargar
+      await _performSiteChange();
+
+      // Cerrar loader
+      if (mounted) {
+        Navigator.of(context).pop();
+        showSuccessToast(context, 'Sede cambiada exitosamente');
+      }
+    } catch (e) {
+      // Cerrar cualquier loader abierto
+      if (mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        showErrorToast(context, 'Error al cambiar sede: $e');
+      }
+    }
+  }
+
+  //  MÉTODO SIMPLE QUE REUTILIZA LA LÓGICA EXISTENTE
+  Future<void> _performSiteChange() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+
+    // 1. Limpiar datos usando la función existente del AuthProvider
+    await authProvider
+        .clearProvidersData(); // Reutilizar la limpieza del logout
+
+    // 2. Seleccionar nueva sede
+    final siteSelector = SiteSelector();
+    await siteSelector.handleSiteSelection(context);
+
+    // 3. Verificar selección
+    if (userProvider.selectedSite == null) {
+      throw Exception('No se seleccionó ninguna sede');
+    }
+
+    // 4. Refrescar token con nueva sede
+    final siteId = userProvider.selectedSite!.id;
+    final subsiteId = userProvider.selectedSubsite?.id;
+
+    final refreshSuccess =
+        await authProvider.refreshToken(siteId, subsiteId, context);
+    if (!refreshSuccess) {
+      throw Exception('Error al configurar la nueva sede');
+    }
+
+    // 5. Recargar datos usando tu función existente
+    await _loadAllData(forceRefresh: true);
+  }
+
   @override
   Widget build(BuildContext context) {
     final statusBarHeight = MediaQuery.of(context).viewPadding.top;
+
+    final userProvider = Provider.of<UserProvider>(context);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -220,6 +308,14 @@ class _DashboardTabState extends State<DashboardTab> {
                     ),
                     Row(
                       children: [
+                        if (userProvider.user.role == "SUPERADMIN" ||
+                            userProvider.user.role == "ADMIN")
+                          IconButton(
+                            icon: const Icon(Icons.swap_horiz,
+                                color: Colors.white),
+                            onPressed: _isAnyLoading ? null : _changeSite,
+                            tooltip: 'Cambiar sede',
+                          ),
                         // Indicador de carga si es necesario
                         if (_isAnyLoading)
                           AppLoader(

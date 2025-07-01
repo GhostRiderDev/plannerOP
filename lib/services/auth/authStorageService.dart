@@ -1,3 +1,4 @@
+// En lib/services/auth/authStorageService.dart - REEMPLAZAR todo el archivo
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
@@ -18,9 +19,21 @@ class AuthStorageService {
   late final encrypt.Key _encryptionKey;
   late final encrypt.IV _iv;
 
+  //  BANDERA PARA EVITAR BUCLES RECURSIVOS
+  bool _isClearing = false;
+
   AuthStorageService._internal() {
-    _encryptionKey = encrypt.Key.fromUtf8(_hashKey);
-    _iv = encrypt.IV.fromLength(16);
+    try {
+      _encryptionKey = encrypt.Key.fromUtf8(_hashKey);
+
+      //  USAR UN IV FIJO BASADO EN LA HASH_KEY PARA CONSISTENCIA
+      final ivString = _hashKey.length >= 16
+          ? _hashKey.substring(0, 16)
+          : _hashKey.padRight(16, '0');
+      _iv = encrypt.IV.fromUtf8(ivString);
+    } catch (e) {
+      debugPrint('Error inicializando clave de encriptación: $e');
+    }
   }
 
   // Claves de almacenamiento
@@ -35,10 +48,16 @@ class AuthStorageService {
     return encrypter.encrypt(plainText, iv: _iv).base64;
   }
 
-  // Método para desencriptar texto
+  //  MÉTODO PARA DESENCRIPTAR TEXTO SIN BUCLES RECURSIVOS
   String _decrypt(String encryptedText) {
-    final encrypter = encrypt.Encrypter(encrypt.AES(_encryptionKey));
-    return encrypter.decrypt64(encryptedText, iv: _iv);
+    try {
+      final encrypter = encrypt.Encrypter(encrypt.AES(_encryptionKey));
+      return encrypter.decrypt64(encryptedText, iv: _iv);
+    } catch (e) {
+      debugPrint(' Error al desencriptar: $e');
+      //  NO LLAMAR clearCredentials() AQUÍ para evitar bucle recursivo
+      throw Exception('Error de desencriptación: $e');
+    }
   }
 
   // Guardar credenciales en almacenamiento seguro
@@ -47,38 +66,99 @@ class AuthStorageService {
     required String username,
     required String password,
   }) async {
-    await _secureStorage.write(key: _tokenKey, value: token);
-    await _secureStorage.write(key: _usernameKey, value: _encrypt(username));
-    await _secureStorage.write(key: _passwordKey, value: _encrypt(password));
-    await _secureStorage.write(
-        key: _lastLoginKey, value: DateTime.now().toIso8601String());
+    try {
+      await _secureStorage.write(key: _tokenKey, value: token);
+      await _secureStorage.write(key: _usernameKey, value: _encrypt(username));
+      await _secureStorage.write(key: _passwordKey, value: _encrypt(password));
+      await _secureStorage.write(
+          key: _lastLoginKey, value: DateTime.now().toIso8601String());
+    } catch (e) {
+      debugPrint(' Error guardando credenciales: $e');
+      throw e;
+    }
   }
 
   // Obtener token almacenado
   Future<String?> getToken() async {
-    return await _secureStorage.read(key: _tokenKey);
+    try {
+      return await _secureStorage.read(key: _tokenKey);
+    } catch (e) {
+      debugPrint(' Error obteniendo token: $e');
+      return null;
+    }
   }
 
-  // Obtener nombre de usuario almacenado
+  //  OBTENER NOMBRE DE USUARIO CON MANEJO SEGURO DE ERRORES
   Future<String?> getUsername() async {
-    final encryptedUsername = await _secureStorage.read(key: _usernameKey);
-    if (encryptedUsername == null) return null;
-    return _decrypt(encryptedUsername);
+    if (_isClearing) return null;
+
+    try {
+      final encryptedUsername = await _secureStorage.read(key: _usernameKey);
+      if (encryptedUsername == null || encryptedUsername.isEmpty) return null;
+
+      return _decrypt(encryptedUsername);
+    } catch (e) {
+      debugPrint(' Error obteniendo username: $e');
+      //  MARCAR PARA LIMPIEZA SIN LLAMAR clearCredentials() INMEDIATAMENTE
+      _scheduleCredentialsClear();
+      return null;
+    }
   }
 
-  // Obtener contraseña almacenada
+  //  OBTENER CONTRASEÑA CON MANEJO SEGURO DE ERRORES
   Future<String?> getPassword() async {
-    final encryptedPassword = await _secureStorage.read(key: _passwordKey);
-    if (encryptedPassword == null) return null;
-    return _decrypt(encryptedPassword);
+    if (_isClearing) return null;
+
+    try {
+      final encryptedPassword = await _secureStorage.read(key: _passwordKey);
+      if (encryptedPassword == null || encryptedPassword.isEmpty) return null;
+
+      return _decrypt(encryptedPassword);
+    } catch (e) {
+      debugPrint(' Error obteniendo password: $e');
+      //  MARCAR PARA LIMPIEZA SIN LLAMAR clearCredentials() INMEDIATAMENTE
+      _scheduleCredentialsClear();
+      return null;
+    }
+  }
+
+  //  MÉTODO PARA PROGRAMAR LIMPIEZA DE CREDENCIALES SIN BUCLES
+  void _scheduleCredentialsClear() {
+    if (!_isClearing) {
+      Future.microtask(() async {
+        await clearCredentials();
+      });
+    }
+  }
+
+  //  MÉTODO SEGURO PARA OBTENER CREDENCIALES
+  Future<Map<String, String?>> getSafeCredentials() async {
+    try {
+      final username = await getUsername();
+      final password = await getPassword();
+      final token = await getToken();
+
+      if (username == null ||
+          password == null ||
+          username.isEmpty ||
+          password.isEmpty) {
+        debugPrint('Credenciales incompletas o corruptas');
+        return {'username': null, 'password': null, 'token': null};
+      }
+
+      return {'username': username, 'password': password, 'token': token};
+    } catch (e) {
+      debugPrint(' Error obteniendo credenciales seguras: $e');
+      return {'username': null, 'password': null, 'token': null};
+    }
   }
 
   // Verificar si el token es válido y no ha expirado
   Future<bool> isTokenValid() async {
-    final token = await getToken();
-    if (token == null || token.isEmpty) return false;
-
     try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return false;
+
       // Verificar si el token está expirado
       if (JwtDecoder.isExpired(token)) {
         return false;
@@ -89,7 +169,6 @@ class AuthStorageService {
       if (lastLogin != null) {
         final loginDate = DateTime.parse(lastLogin);
         final now = DateTime.now();
-        // Configurar por cuánto tiempo queremos que sea válida la sesión (1 día)
         if (now.difference(loginDate).inDays >= 1) {
           return false;
         }
@@ -97,23 +176,40 @@ class AuthStorageService {
 
       return true;
     } catch (e) {
-      debugPrint('Error validando token: $e');
+      debugPrint(' Error validando token: $e');
       return false;
     }
   }
 
-  // Borrar credenciales almacenadas
+  //  BORRAR CREDENCIALES CON PROTECCIÓN CONTRA BUCLES
   Future<void> clearCredentials() async {
-    await _secureStorage.delete(key: _tokenKey);
-    await _secureStorage.delete(key: _usernameKey);
-    await _secureStorage.delete(key: _passwordKey);
-    await _secureStorage.delete(key: _lastLoginKey);
+    if (_isClearing) return;
+
+    _isClearing = true;
+
+    try {
+      await _secureStorage.delete(key: _tokenKey);
+      await _secureStorage.delete(key: _usernameKey);
+      await _secureStorage.delete(key: _passwordKey);
+      await _secureStorage.delete(key: _lastLoginKey);
+      debugPrint(' Credenciales limpiadas correctamente');
+    } catch (e) {
+      debugPrint(' Error limpiando credenciales: $e');
+    } finally {
+      _isClearing = false;
+    }
   }
 
-  // Verificar si hay credenciales almacenadas
+  //  VERIFICAR CREDENCIALES SIN CAUSAR BUCLES
   Future<bool> hasCredentials() async {
-    final username = await getUsername();
-    final password = await getPassword();
-    return username != null && password != null;
+    try {
+      final credentials = await getSafeCredentials();
+      final hasValid =
+          credentials['username'] != null && credentials['password'] != null;
+      return hasValid;
+    } catch (e) {
+      debugPrint(' Error verificando credenciales: $e');
+      return false;
+    }
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:plannerop/core/model/worker.dart';
 import 'package:plannerop/core/model/workerGroup.dart';
-import 'package:plannerop/store/operations.dart';
+import 'package:plannerop/providers/operations.dart';
 
 import 'package:plannerop/utils/toast.dart';
 import 'package:plannerop/widgets/operations/components/utils/Loader.dart';

@@ -271,54 +271,6 @@ void _showSingleServiceSelector(
                         ),
                 ),
 
-                // // Footer con botón de guardar
-                // Container(
-                //   padding: const EdgeInsets.all(16),
-                //   decoration: BoxDecoration(
-                //     color: Colors.white,
-                //     boxShadow: [
-                //       BoxShadow(
-                //         color: Colors.black.withOpacity(0.05),
-                //         blurRadius: 4,
-                //         offset: const Offset(0, -1),
-                //       ),
-                //     ],
-                //   ),
-                //   child: SafeArea(
-                //     child: SizedBox(
-                //       width: double.infinity,
-                //       child: ElevatedButton(
-                //         style: ElevatedButton.styleFrom(
-                //           backgroundColor: const Color(0xFF3182CE),
-                //           padding: const EdgeInsets.symmetric(vertical: 16),
-                //           shape: RoundedRectangleBorder(
-                //             borderRadius: BorderRadius.circular(8),
-                //           ),
-                //           disabledBackgroundColor: Colors.grey.shade300,
-                //         ),
-                //         onPressed: workingSelection != null
-                //             ? () {
-                //                 onServiceSelected(workingSelection);
-                //                 Navigator.pop(context);
-                //               }
-                //             : null,
-                //         child: Text(
-                //           workingSelection != null
-                //               ? 'Confirmar selección'
-                //               : 'Selecciona un servicio',
-                //           style: TextStyle(
-                //             fontSize: 16,
-                //             fontWeight: FontWeight.bold,
-                //             color: workingSelection != null
-                //                 ? Colors.white
-                //                 : Colors.grey.shade500,
-                //           ),
-                //         ),
-                //       ),
-                //     ),
-                //   ),
-                // ),
-
                 AppButton(
                   text: workingSelection != null
                       ? 'Confirmar selección'

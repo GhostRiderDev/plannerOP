@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:plannerop/core/model/area.dart';
 import 'package:plannerop/core/model/worker.dart';
-import 'package:plannerop/store/areas.dart';
+import 'package:plannerop/providers/areas.dart';
 import 'package:provider/provider.dart';
 
 class WorkerAddDialog extends StatefulWidget {

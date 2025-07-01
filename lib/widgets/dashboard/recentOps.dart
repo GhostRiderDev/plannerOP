@@ -1,6 +1,6 @@
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:plannerop/mapper/operation.dart';
-import 'package:plannerop/store/operations.dart';
+import 'package:plannerop/providers/operations.dart';
 import 'package:plannerop/utils/operations.dart';
 import 'package:plannerop/widgets/operations/components/utils/emptyState.dart';
 import 'package:plannerop/widgets/operations/components/utils/Loader.dart';

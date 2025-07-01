@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:plannerop/core/model/task.dart';
 import 'package:plannerop/core/model/worker.dart';
 import 'package:plannerop/core/model/workerGroup.dart';
-import 'package:plannerop/store/task.dart';
+import 'package:plannerop/providers/task.dart';
 import 'package:plannerop/utils/groups/groups.dart';
 import 'package:plannerop/utils/toast.dart';
 import 'package:plannerop/widgets/operations/components/serviceSelector.dart';
@@ -32,7 +32,7 @@ void showWorkerAddOptions({
 Future<GroupCreationResult?> createWorkerGroup({
   required BuildContext context,
   required List<Worker> filteredWorkers,
-  //  Añadir parámetro para grupos existentes
+  required List<Task> availableServices,
   List<WorkerGroup>? existingGroups,
 }) async {
   //  Mostrar diálogo para seleccionar horarios
@@ -73,8 +73,6 @@ Future<GroupCreationResult?> createWorkerGroup({
     return true;
   }).toList();
 
-  debugPrint("Trabajadores únicos seleccionados: ${filteredWorkers.length}");
-
   //  Mostrar diálogo para seleccionar trabajadores con la lista completa
   final workers = await showDialog<List<Worker>>(
     context: context,
@@ -106,6 +104,11 @@ Future<GroupCreationResult?> createWorkerGroup({
     workersData: workers,
     name: groupName,
     serviceId: selectedServiceId,
+    serviceName: availableServices
+            .firstWhere((service) => service.id == selectedServiceId,
+                orElse: () => Task(id: 0, name: ''))
+            ?.name ??
+        '',
   );
 
   return GroupCreationResult(newGroup, workers);

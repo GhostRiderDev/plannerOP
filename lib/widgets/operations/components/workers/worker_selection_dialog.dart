@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:plannerop/core/model/worker.dart';
-import 'package:plannerop/store/workers.dart';
+import 'package:plannerop/providers/workers.dart';
 import 'package:plannerop/utils/constants.dart';
 import 'package:provider/provider.dart';
 

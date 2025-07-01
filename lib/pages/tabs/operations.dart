@@ -1,5 +1,5 @@
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
-import 'package:plannerop/store/programmings.dart';
+import 'package:plannerop/providers/programmings.dart';
 import 'package:plannerop/widgets/operations/components/AlertProgramming.dart';
 import 'package:plannerop/widgets/operations/views/activeOperations.dart';
 import 'package:plannerop/widgets/operations/views/pendingOperations.dart';

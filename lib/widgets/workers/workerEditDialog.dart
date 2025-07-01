@@ -3,7 +3,7 @@ import 'package:plannerop/core/model/area.dart';
 import 'package:plannerop/core/model/worker.dart';
 import 'package:intl/intl.dart';
 import 'package:plannerop/mapper/operation.dart';
-import 'package:plannerop/store/areas.dart';
+import 'package:plannerop/providers/areas.dart';
 import 'package:plannerop/utils/operations.dart';
 import 'package:plannerop/widgets/operations/components/utils/Loader.dart';
 import 'package:plannerop/widgets/workers/workerIncapacitationDialog.dart';

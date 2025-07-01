@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
-import 'package:plannerop/store/areas.dart';
-import 'package:plannerop/store/chargersOp.dart';
+import 'package:plannerop/providers/areas.dart';
+import 'package:plannerop/providers/chargersOp.dart';
 import 'package:plannerop/utils/operations.dart';
 import 'package:plannerop/utils/toast.dart';
 import 'package:plannerop/widgets/operations/components/OperationCard.dart';
@@ -9,7 +9,7 @@ import 'package:plannerop/widgets/operations/components/utils.dart';
 import 'package:plannerop/widgets/operations/components/utils/Loader.dart';
 import 'package:plannerop/widgets/operations/edit/editOperationForm.dart';
 import 'package:provider/provider.dart';
-import 'package:plannerop/store/operations.dart';
+import 'package:plannerop/providers/operations.dart';
 import 'package:plannerop/widgets/operations/components/utils/emptyState.dart';
 import 'package:plannerop/core/model/operation.dart';
 
@@ -378,4 +378,54 @@ class _PendingOperationsViewState extends State<PendingOperationsView> {
       },
     );
   }
+}
+
+// Función global para mostrar el formulario de edición como modal bottom sheet
+Future<void> showEditAssignmentForm(
+  BuildContext context,
+  Operation assignment,
+) async {
+  return showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (context) {
+      final assignmentsProvider =
+          Provider.of<OperationsProvider>(context, listen: false);
+
+      return EditOperationForm(
+        assignment: assignment,
+        onSave: (updatedAssignment) async {
+          // Cerrar el formulario primero
+          Navigator.pop(context);
+
+          try {
+            // Actualizar la operación
+            final success = await assignmentsProvider.updateOperation(
+              id: updatedAssignment.id!,
+              status: updatedAssignment.status,
+              endDate: updatedAssignment.endDate,
+              endTime: updatedAssignment.endTime,
+              context: context,
+            );
+
+            if (success) {
+              showSuccessToast(context, 'Operación actualizada correctamente');
+            } else {
+              showErrorToast(context, 'No se pudo actualizar la operación');
+            }
+          } catch (e) {
+            // Cerrar indicador de carga si hay error
+            Navigator.pop(context);
+
+            showErrorToast(
+                context, 'Ha ocurrido un error al actualizar la operación');
+          }
+        },
+        onCancel: () {
+          Navigator.pop(context);
+        },
+      );
+    },
+  );
 }

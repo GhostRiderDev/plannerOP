@@ -3,11 +3,11 @@ import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:intl/intl.dart';
 import 'package:plannerop/core/model/operation.dart';
 import 'package:plannerop/mapper/operation.dart';
-import 'package:plannerop/store/operations.dart';
-import 'package:plannerop/store/workers.dart';
-import 'package:plannerop/store/task.dart';
-import 'package:plannerop/store/clients.dart';
-import 'package:plannerop/store/chargersOp.dart';
+import 'package:plannerop/providers/operations.dart';
+import 'package:plannerop/providers/workers.dart';
+import 'package:plannerop/providers/task.dart';
+import 'package:plannerop/providers/clients.dart';
+import 'package:plannerop/providers/chargersOp.dart';
 import 'package:plannerop/widgets/operations/components/utils/Loader.dart';
 
 import 'package:provider/provider.dart';

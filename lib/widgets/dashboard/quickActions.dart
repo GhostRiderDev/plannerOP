@@ -3,7 +3,7 @@ import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:plannerop/core/model/user.dart';
 import 'package:plannerop/pages/tabs/operations.dart';
 import 'package:plannerop/pages/tabs/reports.dart';
-import 'package:plannerop/store/user.dart';
+import 'package:plannerop/providers/user.dart';
 import 'package:plannerop/widgets/operations/add/addOperationDialog.dart';
 import 'package:provider/provider.dart';
 

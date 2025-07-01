@@ -4,10 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:plannerop/core/model/user.dart';
 import 'package:plannerop/hooks/loaders/loader.dart';
-import 'package:plannerop/pages/siteSlector.dart';
-import 'package:plannerop/pages/tabs/home.dart';
-import 'package:plannerop/store/auth.dart';
-import 'package:plannerop/store/user.dart';
+import 'package:plannerop/pages/siteSelector.dart';
+import 'package:plannerop/pages/home.dart';
+import 'package:plannerop/services/auth/authStorageService.dart';
+import 'package:plannerop/providers/auth.dart';
+import 'package:plannerop/providers/user.dart';
 
 import 'package:plannerop/utils/toast.dart';
 import 'package:plannerop/widgets/operations/components/utils/Loader.dart';
@@ -43,7 +44,7 @@ Future<void> tryAutoLogin(bool mounted, Function setState, bool _isLoading,
     if (success) {
       final decodedToken = JwtDecoder.decode(authProvider.accessToken);
       final userProvider = Provider.of<UserProvider>(context, listen: false);
-
+      final authStorageService = new AuthStorageService();
       userProvider.setUser(User(
         name: decodedToken['username'],
         id: decodedToken['id'],
@@ -53,22 +54,58 @@ Future<void> tryAutoLogin(bool mounted, Function setState, bool _isLoading,
         role: decodedToken['role'],
       ));
 
-      debugPrint(
-          "Usuario autenticado: ${userProvider.user.name} (${userProvider.user.role})");
+      try {
+        final SiteSelector siteSelector = SiteSelector();
+        await siteSelector.handleSiteSelection(context);
 
-      final SiteSelector siteSelector = SiteSelector();
+        // VERIFICAR QUE REALMENTE SE SELECCIONÓ UN SITE
+        if (userProvider.selectedSite == null) {
+          debugPrint('❌ No se seleccionó sede durante auto-login');
 
-      //  MANEJAR SELECCIÓN DE SEDE
-      await siteSelector.handleSiteSelection(context);
+          // ✅ LIMPIAR CREDENCIALES PARA EVITAR BUCLE DE ERROR
+          await authStorageService.clearCredentials();
 
-      //  MOSTRAR LOADER DESPUÉS DE SELECCIONAR SEDE
+          if (mounted) {
+            showErrorToast(context, 'Debe seleccionar una sede principal');
+            setState(() {
+              _isLoading = false;
+            });
+          }
+          return;
+        }
+      } catch (siteSelectionError) {
+        debugPrint('❌ Error en selección de sede: $siteSelectionError');
+
+        // ✅ SI HAY ERROR DE ENCRIPTACIÓN, LIMPIAR CREDENCIALES
+        if (siteSelectionError
+            .toString()
+            .contains('Invalid or corrupted pad block')) {
+          debugPrint(
+              '🧹 Detectado error de encriptación, limpiando credenciales');
+          await authStorageService.clearCredentials();
+        }
+
+        if (mounted) {
+          showErrorToast(context,
+              'Error al seleccionar sede. Por favor inicie sesión manualmente.');
+          setState(() {
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+
+      final siteId = userProvider.selectedSite!.id;
+      final subsiteId = userProvider.selectedSubsite?.id;
+
+      // ✅ MOSTRAR LOADER PARA REFRESCAR TOKEN
       if (mounted) {
         showDialog(
           context: context,
           barrierDismissible: false,
           builder: (BuildContext context) {
             return AppLoader(
-              message: 'Cargando datos, por favor espere...',
+              message: 'Configurando sede seleccionada...',
               color: Colors.blue,
               size: LoaderSize.medium,
             );
@@ -76,12 +113,77 @@ Future<void> tryAutoLogin(bool mounted, Function setState, bool _isLoading,
         );
       }
 
+      // ✅ REFRESCO DE TOKEN CON AWAIT PARA ESPERAR RESPUESTA
+      final refreshSuccess =
+          await authProvider.refreshToken(siteId, subsiteId, context);
+
+      // Cerrar loader de configuración
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      if (!refreshSuccess) {
+        if (mounted) {
+          showErrorToast(context, 'Error al configurar la sede seleccionada');
+        }
+        return;
+      }
+
+      //  MOSTRAR LOADER DESPUÉS DE SELECCIONAR SEDE
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return WillPopScope(
+              onWillPop: () async => false,
+              child: Center(
+                child: Card(
+                  elevation: 8,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Cargando datos...',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        if (userProvider.selectedSite != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            'Sede: ${userProvider.selectedSite!.name}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      }
+
       // Cargar datos
       try {
-        await loadDataAfterAuthentication(
-          context,
-          isMounted: () => mounted,
-        );
+        try {
+          await loadDataAfterAuthentication(
+            context,
+            isMounted: () => mounted,
+          );
+        } catch (dataError) {
+          debugPrint('Error cargando datos: $dataError');
+        }
       } catch (dataError) {
         debugPrint('Error cargando datos: $dataError');
       }
@@ -115,7 +217,7 @@ Future<void> login(GlobalKey<FormState> _formKey, BuildContext context,
     bool dialogIsOpen = true;
     BuildContext? dialogContextRef;
 
-    //  MOSTRAR LOADER DE LOGIN
+    // MOSTRAR LOADER DE LOGIN
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -147,7 +249,7 @@ Future<void> login(GlobalKey<FormState> _formKey, BuildContext context,
     });
 
     try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      var authProvider = Provider.of<AuthProvider>(context, listen: false);
       final success = await authProvider.login(username, password, context);
 
       if (success) {
@@ -163,15 +265,56 @@ Future<void> login(GlobalKey<FormState> _formKey, BuildContext context,
           role: decodedToken['role'],
         ));
 
-        //  CERRAR LOADER DE LOGIN ANTES DE MOSTRAR SELECTOR
+        // CERRAR LOADER DE LOGIN ANTES DE MOSTRAR SELECTOR
         closeDialog();
 
+        //  INICIAR SELECCIÓN DE SITE Y SUBSITE
         final SiteSelector siteSelector = SiteSelector();
-
-        //  MANEJAR SELECCIÓN DE SEDE
         await siteSelector.handleSiteSelection(context);
 
-        //  MOSTRAR LOADER DE CARGA DE DATOS
+        //  VERIFICAR QUE REALMENTE SE SELECCIONÓ UN SITE
+        if (userProvider.selectedSite == null) {
+          if (mounted) {
+            showErrorToast(context, 'Debe seleccionar una sede principal');
+          }
+          return;
+        }
+
+        final siteId = userProvider.selectedSite!.id;
+        final subsiteId = userProvider.selectedSubsite?.id;
+
+        // ✅ MOSTRAR LOADER PARA REFRESCAR TOKEN
+        if (mounted) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return AppLoader(
+                message: 'Configurando sede seleccionada...',
+                color: Colors.blue,
+                size: LoaderSize.medium,
+              );
+            },
+          );
+        }
+
+        // ✅ REFRESCO DE TOKEN CON AWAIT PARA ESPERAR RESPUESTA
+        final refreshSuccess =
+            await authProvider.refreshToken(siteId, subsiteId, context);
+
+        // Cerrar loader de configuración
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+
+        if (!refreshSuccess) {
+          if (mounted) {
+            showErrorToast(context, 'Error al configurar la sede seleccionada');
+          }
+          return;
+        }
+
+        // ✅ MOSTRAR LOADER DE CARGA DE DATOS
         if (mounted) {
           showDialog(
             context: context,
@@ -187,10 +330,14 @@ Future<void> login(GlobalKey<FormState> _formKey, BuildContext context,
         }
 
         // Cargar datos
-        await loadDataAfterAuthentication(
-          context,
-          isMounted: () => mounted,
-        );
+        try {
+          await loadDataAfterAuthentication(
+            context,
+            isMounted: () => mounted,
+          );
+        } catch (e) {
+          debugPrint('❌ Error cargando datos: $e');
+        }
 
         // Navegar al dashboard
         if (mounted) {

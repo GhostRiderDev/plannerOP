@@ -3,7 +3,7 @@ import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:intl/intl.dart';
 import 'package:plannerop/core/model/operation.dart';
 import 'package:plannerop/core/model/workerGroup.dart';
-import 'package:plannerop/store/workers.dart';
+import 'package:plannerop/providers/workers.dart';
 import 'package:plannerop/utils/groups/groupCard.dart';
 
 import 'package:provider/provider.dart';

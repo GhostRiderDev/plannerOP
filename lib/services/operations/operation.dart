@@ -7,8 +7,8 @@ import 'package:http/http.dart' as http;
 import 'package:plannerop/core/model/worker.dart';
 import 'package:plannerop/core/model/workerGroup.dart';
 import 'package:plannerop/dto/operations/createOperation.dart';
-import 'package:plannerop/store/auth.dart';
-import 'package:plannerop/store/workers.dart';
+import 'package:plannerop/providers/auth.dart';
+import 'package:plannerop/providers/workers.dart';
 import 'package:plannerop/utils/date.dart';
 import 'package:plannerop/utils/groups/groups.dart';
 import 'package:provider/provider.dart';
@@ -401,15 +401,15 @@ class OperationService {
 
                 // Añadir el grupo a la lista de grupos
                 operationGroups.add(WorkerGroup(
-                  startTime: timeStart,
-                  endTime: timeEnd,
-                  startDate: dateStart,
-                  endDate: dateEnd,
-                  workers: groupWorkerIds,
-                  name: groupName,
-                  id: groupId,
-                  serviceId: schedule["id_task"] ?? 0,
-                ));
+                    startTime: timeStart,
+                    endTime: timeEnd,
+                    startDate: dateStart,
+                    endDate: dateEnd,
+                    workers: groupWorkerIds,
+                    name: groupName,
+                    id: groupId,
+                    serviceId: schedule["id_task"] ?? 0,
+                    serviceName: schedule["task"] ?? ''));
               }
             }
           }
@@ -595,7 +595,8 @@ class OperationService {
           "dateStart": group["dateStart"],
           "dateEnd": group["dateEnd"],
           "timeStart": group["timeStart"],
-          "timeEnd": group["timeEnd"]
+          "timeEnd": group["timeEnd"],
+          "id_task": group["id_task"]
         });
       }
 

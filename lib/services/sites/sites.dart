@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:plannerop/store/auth.dart';
+import 'package:plannerop/providers/auth.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 
@@ -29,6 +29,8 @@ class SiteService {
       );
 
       if (response.statusCode == 200) {
+        debugPrint(
+            'Sitios obtenidos correctamente ${jsonDecode(response.body)}');
         return jsonDecode(response.body);
       } else {
         debugPrint('Error al obtener sitios: ${response.statusCode}');

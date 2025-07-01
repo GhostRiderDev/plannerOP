@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:plannerop/core/model/worker.dart';
 import 'package:plannerop/core/model/workerGroup.dart';
-import 'package:plannerop/store/workerGroup.dart';
+import 'package:plannerop/providers/task.dart';
+import 'package:plannerop/providers/workerGroup.dart';
 import 'package:plannerop/utils/toast.dart';
 import 'package:provider/provider.dart';
 import 'worker_selection_dialog.dart';
@@ -70,6 +71,8 @@ class _SelectedWorkersListState extends State<SelectedWorkersList> {
       context: context,
       filteredWorkers: _filteredWorkers,
       existingGroups: widget.selectedGroups,
+      availableServices:
+          Provider.of<TasksProvider>(context, listen: false).tasks,
     );
 
     if (result != null) {

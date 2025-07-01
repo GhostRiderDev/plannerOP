@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:plannerop/store/feedings.dart';
+import 'package:plannerop/providers/feedings.dart';
 import 'package:provider/provider.dart';
 
 class FeedingUtils {

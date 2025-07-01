@@ -6,11 +6,11 @@ import 'package:plannerop/core/model/programming.dart';
 import 'package:plannerop/core/model/user.dart';
 import 'package:plannerop/core/model/workerGroup.dart';
 import 'package:plannerop/mapper/operation.dart';
-import 'package:plannerop/store/operations.dart';
-import 'package:plannerop/store/chargersOp.dart';
-import 'package:plannerop/store/clients.dart';
-import 'package:plannerop/store/programmings.dart';
-import 'package:plannerop/store/task.dart';
+import 'package:plannerop/providers/operations.dart';
+import 'package:plannerop/providers/chargersOp.dart';
+import 'package:plannerop/providers/clients.dart';
+import 'package:plannerop/providers/programmings.dart';
+import 'package:plannerop/providers/task.dart';
 import 'package:plannerop/utils/groups/groups.dart';
 import 'package:plannerop/utils/toast.dart';
 import 'package:plannerop/widgets/operations/components/utils.dart';
@@ -598,26 +598,6 @@ Future<Widget?> getServiceGroup(BuildContext context, WorkerGroup group) async {
   }
 
   try {
-    String serviceName;
-
-    //  USAR CACHE PARA EVITAR LLAMADAS REPETIDAS
-    if (_servicesCache.containsKey(group.serviceId)) {
-      serviceName = _servicesCache[group.serviceId]!;
-    } else {
-      //  VERIFICAR NUEVAMENTE ANTES DE ACCEDER AL PROVIDER
-      if (!context.mounted) {
-        return _buildDefaultServiceWidget(group);
-      }
-
-      final serviceProvider =
-          Provider.of<TasksProvider>(context, listen: false);
-      serviceName = await serviceProvider.getTaskNameByIdServiceAsync(
-          group.serviceId, context);
-
-      // Guardar en cache
-      _servicesCache[group.serviceId] = serviceName;
-    }
-
     //  VERIFICAR UNA VEZ MÁS ANTES DE RETORNAR EL WIDGET
     if (!context.mounted) {
       return _buildDefaultServiceWidget(group);
@@ -633,7 +613,7 @@ Future<Widget?> getServiceGroup(BuildContext context, WorkerGroup group) async {
         const SizedBox(width: 4),
         Expanded(
           child: Text(
-            serviceName,
+            group.serviceName.toUpperCase(),
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,

@@ -4,8 +4,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:plannerop/core/model/fault.dart';
 import 'package:plannerop/core/model/worker.dart';
-import 'package:plannerop/store/auth.dart';
-import 'package:plannerop/store/workers.dart';
+import 'package:plannerop/providers/auth.dart';
+import 'package:plannerop/providers/workers.dart';
 import 'package:provider/provider.dart';
 
 class FaultService {
@@ -111,24 +111,6 @@ class FaultService {
         return false;
       }
 
-      // Primero actualiza el contador de faltas en el worker
-      var workerUrl = Uri.parse('$API_URL/worker/${worker.id}');
-      var workerResponse = await http.patch(
-        workerUrl,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json'
-        },
-        body: jsonEncode({
-          'failures': worker.failures + 1,
-        }),
-      );
-
-      if (!(workerResponse.statusCode >= 200 &&
-          workerResponse.statusCode < 300)) {
-        return false;
-      }
-
       // Si se proporcionó una descripción, registrar también la falta como incidente
       if (description != null && description.isNotEmpty) {
         var faultUrl = Uri.parse('$API_URL/called-attention');
@@ -184,8 +166,6 @@ class FaultService {
         }),
       );
 
-      // debugPrint(
-      //     'Worker API Response: ${workerResponse.statusCode} - ${workerResponse.body}');
 
       if (!(workerResponse.statusCode >= 200 &&
           workerResponse.statusCode < 300)) {

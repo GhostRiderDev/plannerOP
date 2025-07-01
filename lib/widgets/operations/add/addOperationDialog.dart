@@ -6,9 +6,9 @@ import 'package:plannerop/core/model/client.dart';
 import 'package:plannerop/core/model/programming.dart';
 import 'package:plannerop/core/model/worker.dart';
 import 'package:plannerop/core/model/workerGroup.dart';
-import 'package:plannerop/store/areas.dart';
-import 'package:plannerop/store/clients.dart';
-import 'package:plannerop/store/workers.dart';
+import 'package:plannerop/providers/areas.dart';
+import 'package:plannerop/providers/clients.dart';
+import 'package:plannerop/providers/workers.dart';
 import 'package:plannerop/utils/neumophomic.dart';
 import 'package:plannerop/utils/toast.dart';
 import 'package:plannerop/widgets/operations/add/addOperationContent.dart';
@@ -167,6 +167,7 @@ class AddOperationDialogState extends State<AddOperationDialog> {
                           serviceId: currentGroup.serviceId,
                           workers: updatedWorkers,
                           workersData: updatedWorkersData,
+                          serviceName: currentGroup.serviceName,
                         );
                         _selectedGroups[groupIndex] = updatedGroup;
                       }

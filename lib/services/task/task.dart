@@ -4,8 +4,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:plannerop/core/model/task.dart';
 import 'package:plannerop/dto/taks/fetchTask.dart';
-import 'package:plannerop/store/auth.dart';
-import 'package:plannerop/store/user.dart';
+import 'package:plannerop/providers/auth.dart';
+import 'package:plannerop/providers/user.dart';
 import 'package:provider/provider.dart';
 
 class TaskService {

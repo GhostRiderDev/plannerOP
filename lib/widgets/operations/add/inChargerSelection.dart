@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:plannerop/core/model/user.dart';
-import 'package:plannerop/store/chargersOp.dart';
+import 'package:plannerop/providers/chargersOp.dart';
 import 'package:plannerop/widgets/operations/components/utils/Button.dart';
 import 'package:provider/provider.dart';
 

@@ -4,13 +4,12 @@ import 'package:plannerop/core/model/operation.dart';
 import 'package:plannerop/core/model/client.dart';
 import 'package:plannerop/core/model/worker.dart';
 import 'package:plannerop/core/model/workerGroup.dart';
-import 'package:plannerop/store/clients.dart';
-import 'package:plannerop/store/operations.dart';
-import 'package:plannerop/store/workers.dart';
+import 'package:plannerop/providers/clients.dart';
+import 'package:plannerop/providers/operations.dart';
+import 'package:plannerop/providers/workers.dart';
 import 'package:plannerop/utils/operations.dart';
 import 'package:plannerop/utils/toast.dart';
 import 'package:plannerop/widgets/operations/components/utils/dateField.dart';
-import 'package:plannerop/widgets/operations/components/utils/Loader.dart';
 import 'package:plannerop/widgets/operations/components/utils/timeField.dart';
 import 'package:plannerop/widgets/operations/components/workers/workerList.dart';
 import 'package:provider/provider.dart';
@@ -188,6 +187,7 @@ class EditOperationFormState extends State<EditOperationForm> {
         serviceId: group.serviceId,
         workers: [...group.workers, ...newWorkers.map((w) => w.id)],
         workersData: [...(group.workersData ?? []), ...newWorkers],
+        serviceName: group.serviceName,
       );
 
       // Actualizar la lista de grupos
@@ -258,6 +258,7 @@ class EditOperationFormState extends State<EditOperationForm> {
           serviceId: group.serviceId,
           workers: updatedWorkerIds,
           workersData: updatedWorkersData,
+          serviceName: group.serviceName,
         );
 
         // Actualizar el grupo en la lista
@@ -346,6 +347,8 @@ class EditOperationFormState extends State<EditOperationForm> {
                 children: [
                   // Selector de trabajadores con soporte para grupos
                   SelectedWorkersList(
+                    // selectedWorkers: _selectedWorkers,
+                    // onWorkersChanged: _updateSelectedWorkers,
                     availableWorkers: _allWorkers,
                     selectedGroups: _selectedGroups,
                     onGroupsChanged: updateSelectedGroups,
@@ -508,10 +511,28 @@ class EditOperationFormState extends State<EditOperationForm> {
                     height: 40,
                     child: Center(
                       child: _isSaving
-                          ? AppLoader(
-                              size: LoaderSize.medium,
-                              color: Colors.white,
-                              message: 'Guardando...',
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Guardando...',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
                             )
                           : const Text(
                               'Guardar Cambios',

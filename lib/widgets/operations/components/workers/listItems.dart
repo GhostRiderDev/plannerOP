@@ -3,7 +3,7 @@ import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:plannerop/core/model/task.dart';
 import 'package:plannerop/core/model/worker.dart';
 import 'package:plannerop/core/model/workerGroup.dart';
-import 'package:plannerop/store/task.dart';
+import 'package:plannerop/providers/task.dart';
 import 'package:plannerop/utils/worker_utils.dart';
 import 'package:plannerop/widgets/operations/components/utils/Button.dart';
 import 'package:plannerop/widgets/operations/components/utils/Loader.dart';
@@ -435,15 +435,15 @@ void removeWorker({
   if (removeFromGroupOnly && workerGroup != null) {
     // Clonar el grupo y actualizar la lista de trabajadores
     final updatedGroup = WorkerGroup(
-      id: workerGroup.id,
-      name: workerGroup.name,
-      startTime: workerGroup.startTime,
-      endTime: workerGroup.endTime,
-      startDate: workerGroup.startDate,
-      endDate: workerGroup.endDate,
-      serviceId: workerGroup.serviceId,
-      workers: [...workerGroup.workers]..remove(worker.id),
-    );
+        id: workerGroup.id,
+        name: workerGroup.name,
+        startTime: workerGroup.startTime,
+        endTime: workerGroup.endTime,
+        startDate: workerGroup.startDate,
+        endDate: workerGroup.endDate,
+        serviceId: workerGroup.serviceId,
+        workers: [...workerGroup.workers]..remove(worker.id),
+        serviceName: '');
 
     // Actualizar la lista de grupos
     final updatedGroups = selectedGroups.map((g) {
@@ -475,15 +475,15 @@ void removeWorker({
     final updatedGroups = selectedGroups.map((group) {
       if (group.workers.contains(worker.id)) {
         return WorkerGroup(
-          id: group.id,
-          name: group.name,
-          startTime: group.startTime,
-          endTime: group.endTime,
-          startDate: group.startDate,
-          endDate: group.endDate,
-          serviceId: group.serviceId,
-          workers: [...group.workers]..remove(worker.id),
-        );
+            id: group.id,
+            name: group.name,
+            startTime: group.startTime,
+            endTime: group.endTime,
+            startDate: group.startDate,
+            endDate: group.endDate,
+            serviceId: group.serviceId,
+            workers: [...group.workers]..remove(worker.id),
+            serviceName: group.serviceName);
       }
       return group;
     }).toList();

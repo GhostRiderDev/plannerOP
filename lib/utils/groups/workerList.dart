@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:plannerop/core/model/operation.dart';
 import 'package:plannerop/core/model/worker.dart';
 import 'package:plannerop/core/model/workerGroup.dart';
-import 'package:plannerop/store/feedings.dart';
+import 'package:plannerop/providers/feedings.dart';
 import 'package:plannerop/utils/feedingUtils.dart';
 import 'package:plannerop/utils/toast.dart';
 import 'package:plannerop/utils/worker_utils.dart';

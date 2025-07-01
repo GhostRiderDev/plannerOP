@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:plannerop/core/model/operation.dart';
 import 'package:plannerop/core/model/worker.dart';
 import 'package:plannerop/core/model/workerGroup.dart';
-import 'package:plannerop/store/auth.dart';
+import 'package:plannerop/providers/auth.dart';
 import 'package:plannerop/utils/charts/chartData.dart';
 import 'package:provider/provider.dart';
 
@@ -174,16 +174,16 @@ class PaginatedOperationsService {
           }
 
           groups.add(WorkerGroup(
-            id: groupData['groupId']?.toString() ?? '',
-            startTime: schedule['timeStart'],
-            endTime: schedule['timeEnd'],
-            startDate: schedule['dateStart'],
-            endDate: schedule['dateEnd'],
-            workers: workerIds,
-            workersData: workersData,
-            name: "Grupo ${groupData['groupId'] ?? ''}",
-            serviceId: schedule['id_task'] ?? 0,
-          ));
+              id: groupData['groupId']?.toString() ?? '',
+              startTime: schedule['timeStart'],
+              endTime: schedule['timeEnd'],
+              startDate: schedule['dateStart'],
+              endDate: schedule['dateEnd'],
+              workers: workerIds,
+              workersData: workersData,
+              name: "Grupo ${groupData['groupId'] ?? ''}",
+              serviceId: schedule['id_task'] ?? 0,
+              serviceName: schedule['task'] ?? ''));
         }
       }
 

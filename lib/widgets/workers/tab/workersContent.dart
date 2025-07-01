@@ -9,8 +9,8 @@ import 'package:plannerop/widgets/workers/workerStats.dart';
 import 'package:plannerop/widgets/workers/workerListItem.dart';
 import 'package:plannerop/widgets/workers/workerEmptyState.dart';
 import 'package:plannerop/widgets/workers/workerDetailDialog.dart';
-import 'package:plannerop/store/workers.dart';
-import 'package:plannerop/store/faults.dart';
+import 'package:plannerop/providers/workers.dart';
+import 'package:plannerop/providers/faults.dart';
 
 class WorkersContent extends StatelessWidget {
   final String searchQuery;

@@ -5,11 +5,11 @@ import 'package:plannerop/core/model/client.dart';
 import 'package:plannerop/core/model/programming.dart';
 import 'package:plannerop/core/model/worker.dart';
 import 'package:plannerop/core/model/workerGroup.dart';
-import 'package:plannerop/store/areas.dart';
-import 'package:plannerop/store/clients.dart';
-import 'package:plannerop/store/operations.dart';
-import 'package:plannerop/store/user.dart';
-import 'package:plannerop/store/workers.dart';
+import 'package:plannerop/providers/areas.dart';
+import 'package:plannerop/providers/clients.dart';
+import 'package:plannerop/providers/operations.dart';
+import 'package:plannerop/providers/user.dart';
+import 'package:plannerop/providers/workers.dart';
 import 'package:plannerop/utils/toast.dart';
 import 'package:provider/provider.dart';
 

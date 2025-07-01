@@ -3,10 +3,10 @@ import 'package:intl/intl.dart';
 import 'package:plannerop/core/model/operation.dart';
 import 'package:plannerop/core/model/workerGroup.dart';
 import 'package:plannerop/mapper/operation.dart';
-import 'package:plannerop/store/clients.dart';
-import 'package:plannerop/store/chargersOp.dart';
-import 'package:plannerop/store/task.dart';
-import 'package:plannerop/store/workers.dart';
+import 'package:plannerop/providers/clients.dart';
+import 'package:plannerop/providers/chargersOp.dart';
+import 'package:plannerop/providers/task.dart';
+import 'package:plannerop/providers/workers.dart';
 import 'package:plannerop/widgets/reports/exports/WorkerReportRow.dart';
 import 'package:provider/provider.dart';
 

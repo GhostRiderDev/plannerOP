@@ -7,8 +7,8 @@ import 'package:intl/intl.dart';
 import 'package:plannerop/core/model/user.dart';
 import 'package:plannerop/core/model/worker.dart';
 import 'package:plannerop/dto/workers/fetchWorkers.dart';
-import 'package:plannerop/store/auth.dart';
-import 'package:plannerop/store/user.dart';
+import 'package:plannerop/providers/auth.dart';
+import 'package:plannerop/providers/user.dart';
 import 'package:provider/provider.dart';
 
 class WorkerService {

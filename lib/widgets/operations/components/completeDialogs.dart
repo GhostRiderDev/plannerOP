@@ -4,8 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:plannerop/core/model/operation.dart';
 import 'package:plannerop/core/model/worker.dart';
 import 'package:plannerop/core/model/workerGroup.dart';
-import 'package:plannerop/store/operations.dart';
-import 'package:plannerop/store/workers.dart';
+import 'package:plannerop/providers/operations.dart';
+import 'package:plannerop/providers/workers.dart';
 import 'package:plannerop/utils/toast.dart';
 import 'package:plannerop/widgets/operations/components/utils/Loader.dart';
 import 'package:provider/provider.dart';
@@ -434,9 +434,7 @@ void showGroupCompletionDialog(
           return AlertDialog(
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: Text(groupId == "individual"
-                ? 'Completar Trabajadores Individuales'
-                : 'Completar Grupo de Trabajadores'),
+            title: Text('Completar Grupo de Trabajadores'),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
