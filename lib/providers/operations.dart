@@ -85,7 +85,14 @@ class OperationsProvider extends ChangeNotifier {
         final group = assignment.groups.firstWhere(
           (g) => g.id == groupId,
           orElse: () => WorkerGroup(
-              workers: [], name: "", id: "", serviceId: 0, serviceName: ''),
+              workers: [],
+              name: "",
+              id: "",
+              serviceId: 0,
+              serviceName: '',
+              subTaskName: '',
+              subTaskId: 0,
+              tariffId: 0),
         );
 
         // Si el grupo tiene fecha y hora de inicio, usarlas

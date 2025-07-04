@@ -60,7 +60,7 @@ class TasksProvider extends ChangeNotifier {
     // Buscar la tarea
     final task = _tasks.firstWhere(
       (task) => task.id == id,
-      orElse: () => Task(id: 0, name: ''),
+      orElse: () => Task(id: 0, name: '', subtasks: []),
     );
 
     return task.name.isNotEmpty ? task.name : 'Servicio ID $id no encontrado';
@@ -115,13 +115,13 @@ class TasksProvider extends ChangeNotifier {
 
   Task getTaskByName(String name) {
     return _tasks.firstWhere((task) => task.name == name,
-        orElse: () => Task(id: 0, name: ''));
+        orElse: () => Task(id: 0, name: '', subtasks: []));
   }
 
   // MEJORADO: Método síncrono con mejor debugging
   String getTaskNameByIdService(int id) {
     final task = _tasks.firstWhere((task) => task.id == id,
-        orElse: () => Task(id: 0, name: ''));
+        orElse: () => Task(id: 0, name: '', subtasks: []));
 
     return task.name.isEmpty ? 'Servicio no especificado' : task.name;
   }

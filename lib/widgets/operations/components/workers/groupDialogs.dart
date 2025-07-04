@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:plannerop/core/model/subtask.dart';
 import 'package:plannerop/core/model/task.dart';
 import 'package:plannerop/core/model/worker.dart';
 import 'package:plannerop/core/model/workerGroup.dart';
@@ -44,6 +45,7 @@ Future<GroupCreationResult?> createWorkerGroup({
   final DateTime? startDate = scheduleData['startDate'];
   final DateTime? endDate = scheduleData['endDate'];
   final int selectedServiceId = scheduleData['serviceId'] ?? 0;
+  final int selectedTariffId = scheduleData['tariffId'] ?? 0;
 
   // Verificar que al menos tenga un horario definido
   if (startTime == null) {
@@ -94,6 +96,19 @@ Future<GroupCreationResult?> createWorkerGroup({
   String? endDateStr =
       endDate != null ? DateFormat('yyyy-MM-dd').format(endDate) : null;
 
+  // Buscar el nombre de la subtarea
+  String serviceName = '';
+
+  for (final task in availableServices) {
+    for (final subtask in task.subtasks) {
+      if (subtask.id == selectedServiceId) {
+        serviceName = subtask.name;
+        break;
+      }
+    }
+    if (serviceName.isNotEmpty) break;
+  }
+
   final newGroup = WorkerGroup(
     id: DateTime.now().millisecondsSinceEpoch.toString(),
     startTime: startTime,
@@ -104,11 +119,10 @@ Future<GroupCreationResult?> createWorkerGroup({
     workersData: workers,
     name: groupName,
     serviceId: selectedServiceId,
-    serviceName: availableServices
-            .firstWhere((service) => service.id == selectedServiceId,
-                orElse: () => Task(id: 0, name: ''))
-            ?.name ??
-        '',
+    serviceName: serviceName,
+    subTaskId: selectedServiceId,
+    subTaskName: serviceName,
+    tariffId: selectedTariffId,
   );
 
   return GroupCreationResult(newGroup, workers);
@@ -123,6 +137,9 @@ Future<Map<String, dynamic>?> _showGroupScheduleDialog(
   final TextEditingController endDateController = TextEditingController();
 
   int selectedServiceId = 0;
+  int selectedTariffId = 0;
+  int selectedTaskId = 0;
+
   bool showValidationErrors = false;
 
   final result = await showDialog<Map<String, dynamic>>(
@@ -169,6 +186,8 @@ Future<Map<String, dynamic>?> _showGroupScheduleDialog(
             'startDate': startDate,
             'endDate': endDate,
             'serviceId': selectedServiceId,
+            'taskId': selectedTaskId,
+            'tariffId': selectedTariffId,
           });
         }
 
@@ -271,8 +290,20 @@ Future<Map<String, dynamic>?> _showGroupScheduleDialog(
                         availableTasks,
                         selectedServiceId,
                         (newSelection) {
+                          //  Buscar la Task padre de la subtarea seleccionada
+                          int taskId = 0;
+                          for (final task in availableTasks) {
+                            if (task.subtasks.any(
+                                (subtask) => subtask.id == newSelection.id)) {
+                              taskId = task
+                                  .id; // Usar Task ID en lugar de SubTask ID
+                              break;
+                            }
+                          }
+
                           setState(() {
-                            selectedServiceId = newSelection;
+                            selectedServiceId = taskId; // Guardar Task ID
+                            selectedTariffId = newSelection.tariffs[0].id;
                           });
                         },
                       ),

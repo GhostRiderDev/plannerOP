@@ -25,7 +25,14 @@ class WorkerGroupsProvider with ChangeNotifier {
   WorkerGroup? getGroupById(String groupId) {
     return _groups.firstWhere((group) => group.id == groupId,
         orElse: () => WorkerGroup(
-            workers: [], name: "", id: "", serviceId: 0, serviceName: ''));
+            workers: [],
+            name: "",
+            id: "",
+            serviceId: 0,
+            serviceName: '',
+            subTaskName: '',
+            subTaskId: 0,
+            tariffId: 0));
   }
 
   // Remover un trabajador de su grupo

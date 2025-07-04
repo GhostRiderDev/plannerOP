@@ -8,9 +8,14 @@ class WorkerGroup {
   final List<int> workers;
   List<Worker>? workersData;
   final int serviceId;
+  final int tariffId;
+  final int subTaskId;
+  final String subTaskName;
   final String name;
   final String? id;
   final String serviceName;
+  final int? idUnitOfMeasure;
+  final String? unitOfMeasure;
 
   WorkerGroup(
       {this.startTime,
@@ -22,7 +27,12 @@ class WorkerGroup {
       required this.name,
       required this.id,
       required this.serviceId,
-      required this.serviceName});
+      required this.serviceName,
+      required this.subTaskId,
+      required this.subTaskName,
+      required this.tariffId,
+      this.idUnitOfMeasure,
+      this.unitOfMeasure});
 
   String toJson() {
     return '''
@@ -35,7 +45,12 @@ class WorkerGroup {
       "serviceId": $serviceId,
       "name": "$name",
       "id": "$id",
-      "serviceName": "$serviceName"
+      "serviceName": "$serviceName",
+      "subTaskId": "$subTaskId",
+      "subTaskName": "$subTaskName",
+      "tariffId": $tariffId,
+      "idUnitOfMeasure": ${idUnitOfMeasure ?? 'null'},
+      "unitOfMeasure": "${unitOfMeasure ?? ''}"
     }
     ''';
   }

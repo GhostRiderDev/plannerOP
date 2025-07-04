@@ -44,7 +44,8 @@ class OperationService {
             "timeStart": group.startTime,
             "timeEnd": group.endTime,
             "workerIds": group.workers,
-            "id_task": group.serviceId
+            "id_task": group.serviceId,
+            "id_tariff": group.tariffId,
           };
         }).toList(),
         'id_clientProgramming': operation.id_clientProgramming,
@@ -307,6 +308,10 @@ class OperationService {
               final timeStart = schedule['timeStart'];
               final timeEnd = schedule['timeEnd'];
               final groupId = group["groupId"];
+              final idUnitOfMeasure = schedule["id_unit_of_measure"];
+              final unitOfMeasure = schedule["unit_of_measure"];
+
+              debugPrint("schedule: $schedule");
 
               // Verificar si este grupo tiene un horario definido
               final hasSchedule = (dateStart != null && dateStart != "") ||
@@ -409,7 +414,12 @@ class OperationService {
                     name: groupName,
                     id: groupId,
                     serviceId: schedule["id_task"] ?? 0,
-                    serviceName: schedule["task"] ?? ''));
+                    serviceName: schedule["task"] ?? '',
+                    subTaskId: schedule["id_subtask"] ?? -1,
+                    subTaskName: schedule["subtask"] ?? '',
+                    tariffId: schedule["id_tariff"] ?? 0,
+                    idUnitOfMeasure: idUnitOfMeasure,
+                    unitOfMeasure: unitOfMeasure));
               }
             }
           }

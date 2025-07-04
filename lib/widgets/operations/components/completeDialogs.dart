@@ -13,10 +13,14 @@ import 'package:provider/provider.dart';
 // Dialogo para confirmar la finalización de una operación
 void showCompletionDialog({
   required BuildContext context,
-  required Operation assignment,
+  required Operation operation,
   required OperationsProvider provider,
 }) {
   bool isProcessing = false;
+
+  for (var group in operation.groups) {
+    debugPrint("Id de la unidad de trabajo: ${group.idUnitOfMeasure}");
+  }
 
   showDialog(
     context: context,
@@ -65,15 +69,15 @@ void showCompletionDialog({
                           final currentTime = DateFormat('HH:mm').format(now);
 
                           var endTimeToSave =
-                              assignment.endTime?.isNotEmpty == true
-                                  ? assignment.endTime
+                              operation.endTime?.isNotEmpty == true
+                                  ? operation.endTime
                                   : currentTime;
 
                           endTimeToSave ??= currentTime;
 
                           final success = await provider.completeOperation(
-                              assignment.id ?? 0,
-                              assignment.endDate ?? now,
+                              operation.id ?? 0,
+                              operation.endDate ?? now,
                               endTimeToSave,
                               context);
 

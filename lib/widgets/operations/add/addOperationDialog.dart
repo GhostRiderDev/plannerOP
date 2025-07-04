@@ -168,6 +168,9 @@ class AddOperationDialogState extends State<AddOperationDialog> {
                           workers: updatedWorkers,
                           workersData: updatedWorkersData,
                           serviceName: currentGroup.serviceName,
+                          subTaskId: currentGroup.subTaskId,
+                          subTaskName: currentGroup.subTaskName,
+                          tariffId: currentGroup.tariffId,
                         );
                         _selectedGroups[groupIndex] = updatedGroup;
                       }
@@ -360,7 +363,8 @@ class AddOperationDialogState extends State<AddOperationDialog> {
           earliestStartDateTime == null) {
         try {
           final startDate = DateTime.parse(group.startDate!);
-          earliestStartDateTime ??= DateTime(startDate.year, startDate.month, startDate.day, 0, 0);
+          earliestStartDateTime ??=
+              DateTime(startDate.year, startDate.month, startDate.day, 0, 0);
         } catch (e) {
           debugPrint('Error al procesar fecha de inicio sin hora: $e');
         }
@@ -389,7 +393,8 @@ class AddOperationDialogState extends State<AddOperationDialog> {
           latestEndDateTime == null) {
         try {
           final endDate = DateTime.parse(group.endDate!);
-          latestEndDateTime ??= DateTime(endDate.year, endDate.month, endDate.day, 23, 59);
+          latestEndDateTime ??=
+              DateTime(endDate.year, endDate.month, endDate.day, 23, 59);
         } catch (e) {
           debugPrint('Error al procesar fecha de fin sin hora: $e');
         }

@@ -29,8 +29,6 @@ class SiteService {
       );
 
       if (response.statusCode == 200) {
-        debugPrint(
-            'Sitios obtenidos correctamente ${jsonDecode(response.body)}');
         return jsonDecode(response.body);
       } else {
         debugPrint('Error al obtener sitios: ${response.statusCode}');

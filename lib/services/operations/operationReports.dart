@@ -34,7 +34,6 @@ class PaginatedOperationsService {
       // Formatear las fechas para la API (YYYY-MM-DD)
       final String formattedStartDate =
           DateFormat('yyyy-MM-dd').format(startDate);
-      final String formattedEndDate = DateFormat('yyyy-MM-dd').format(endDate);
 
       // Construir parámetros de consulta
       Map<String, String> queryParams = {
@@ -169,16 +168,22 @@ class PaginatedOperationsService {
           }
 
           groups.add(WorkerGroup(
-              id: groupData['groupId']?.toString() ?? '',
-              startTime: schedule['timeStart'],
-              endTime: schedule['timeEnd'],
-              startDate: schedule['dateStart'],
-              endDate: schedule['dateEnd'],
-              workers: workerIds,
-              workersData: workersData,
-              name: "Grupo ${groupData['groupId'] ?? ''}",
-              serviceId: schedule['id_task'] ?? 0,
-              serviceName: schedule['task'] ?? ''));
+            id: groupData['groupId']?.toString() ?? '',
+            startTime: schedule['timeStart'],
+            endTime: schedule['timeEnd'],
+            startDate: schedule['dateStart'],
+            endDate: schedule['dateEnd'],
+            workers: workerIds,
+            workersData: workersData,
+            name: "Grupo ${groupData['groupId'] ?? ''}",
+            serviceId: schedule['id_task'] ?? 0,
+            serviceName: schedule['task'] ?? '',
+            subTaskId: schedule['id_subtask'] ?? 0,
+            subTaskName: schedule['subtask'] ?? '',
+            tariffId: schedule['id_tariff'] ?? 0,
+            idUnitOfMeasure: schedule['id_unit_of_measure'] ?? 0,
+            unitOfMeasure: schedule['unit_of_measure'] ?? '',
+          ));
         }
       }
 

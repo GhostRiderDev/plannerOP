@@ -262,7 +262,7 @@ class _ActiveOperationsViewState extends State<ActiveOperationsView> {
                 Navigator.pop(context);
                 showCompletionDialog(
                     context: context,
-                    assignment: assignment,
+                    operation: assignment,
                     provider: provider);
               },
               child: const Text(

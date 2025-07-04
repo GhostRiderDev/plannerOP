@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
-import 'package:plannerop/core/model/task.dart';
 import 'package:plannerop/core/model/worker.dart';
 import 'package:plannerop/core/model/workerGroup.dart';
-import 'package:plannerop/providers/task.dart';
 import 'package:plannerop/utils/worker_utils.dart';
 import 'package:plannerop/widgets/operations/components/utils/Button.dart';
-import 'package:provider/provider.dart';
 
 // Construir el encabezado de la lista
 Widget buildWorkersListHeader({
@@ -211,18 +208,7 @@ Widget _buildGroupSection({
   Function(WorkerGroup, List<Worker>)? onWorkersRemovedFromGroup,
 }) {
   // Obtener la tarea correspondiente al grupo
-  final tasksProvider = Provider.of<TasksProvider>(context, listen: false);
-  String serviceName = "Servicio no especificado";
-
-  if (group.serviceId > 0) {
-    final service = tasksProvider.tasks.firstWhere(
-      (task) => task.id == group.serviceId,
-      orElse: () => Task(id: 0, name: ""),
-    );
-    if (service.name.isNotEmpty) {
-      serviceName = service.name;
-    }
-  }
+  String serviceName = group.serviceName;
 
   return Card(
     margin: const EdgeInsets.symmetric(vertical: 4),
@@ -442,7 +428,12 @@ void removeWorker({
         endDate: workerGroup.endDate,
         serviceId: workerGroup.serviceId,
         workers: [...workerGroup.workers]..remove(worker.id),
-        serviceName: '');
+        serviceName: '',
+        subTaskName: workerGroup.subTaskName,
+        subTaskId: workerGroup.subTaskId,
+        tariffId: workerGroup.tariffId,
+        idUnitOfMeasure: workerGroup.idUnitOfMeasure,
+        unitOfMeasure: workerGroup.unitOfMeasure);
 
     // Actualizar la lista de grupos
     final updatedGroups = selectedGroups.map((g) {
@@ -482,7 +473,12 @@ void removeWorker({
             endDate: group.endDate,
             serviceId: group.serviceId,
             workers: [...group.workers]..remove(worker.id),
-            serviceName: group.serviceName);
+            serviceName: group.serviceName,
+            subTaskName: group.subTaskName,
+            subTaskId: group.subTaskId,
+            tariffId: group.tariffId,
+            idUnitOfMeasure: group.idUnitOfMeasure,
+            unitOfMeasure: group.unitOfMeasure);
       }
       return group;
     }).toList();

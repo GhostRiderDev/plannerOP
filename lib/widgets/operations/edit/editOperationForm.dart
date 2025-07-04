@@ -176,17 +176,21 @@ class EditOperationFormState extends State<EditOperationForm> {
     setState(() {
       // Actualizar el grupo con los nuevos trabajadores
       final updatedGroup = WorkerGroup(
-        id: group.id,
-        name: group.name,
-        startTime: group.startTime,
-        endTime: group.endTime,
-        startDate: group.startDate,
-        endDate: group.endDate,
-        serviceId: group.serviceId,
-        workers: [...group.workers, ...newWorkers.map((w) => w.id)],
-        workersData: [...(group.workersData ?? []), ...newWorkers],
-        serviceName: group.serviceName,
-      );
+          id: group.id,
+          name: group.name,
+          startTime: group.startTime,
+          endTime: group.endTime,
+          startDate: group.startDate,
+          endDate: group.endDate,
+          serviceId: group.serviceId,
+          workers: [...group.workers, ...newWorkers.map((w) => w.id)],
+          workersData: [...(group.workersData ?? []), ...newWorkers],
+          serviceName: group.serviceName,
+          subTaskName: group.subTaskName,
+          subTaskId: group.subTaskId,
+          tariffId: group.tariffId,
+          idUnitOfMeasure: group.idUnitOfMeasure,
+          unitOfMeasure: group.unitOfMeasure);
 
       // Actualizar la lista de grupos
       final groupIndex = _selectedGroups.indexWhere((g) => g.id == group.id);
@@ -247,17 +251,21 @@ class EditOperationFormState extends State<EditOperationForm> {
             [];
 
         final updatedGroup = WorkerGroup(
-          id: group.id,
-          name: group.name,
-          startTime: group.startTime,
-          endTime: group.endTime,
-          startDate: group.startDate,
-          endDate: group.endDate,
-          serviceId: group.serviceId,
-          workers: updatedWorkerIds,
-          workersData: updatedWorkersData,
-          serviceName: group.serviceName,
-        );
+            id: group.id,
+            name: group.name,
+            startTime: group.startTime,
+            endTime: group.endTime,
+            startDate: group.startDate,
+            endDate: group.endDate,
+            serviceId: group.serviceId,
+            workers: updatedWorkerIds,
+            workersData: updatedWorkersData,
+            serviceName: group.serviceName,
+            subTaskName: group.subTaskName,
+            subTaskId: group.subTaskId,
+            tariffId: group.tariffId,
+            idUnitOfMeasure: group.idUnitOfMeasure,
+            unitOfMeasure: group.unitOfMeasure);
 
         // Actualizar el grupo en la lista
         final groupIndex = _selectedGroups.indexWhere((g) => g.id == group.id);
