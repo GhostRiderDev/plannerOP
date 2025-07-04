@@ -192,7 +192,34 @@ class OperationCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min, // Añadido para evitar problemas de layout
       children: [
-        ...getServicesGroups(context, assignment.groups),
+        FutureBuilder<List<Widget>>(
+          future: getServicesGroups(context, assignment.groups),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              );
+            }
+
+            if (snapshot.hasError) {
+              return Text(
+                'Error loading services',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.red.withValues(alpha: 0.7),
+                ),
+              );
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: snapshot.data ?? [],
+            );
+          },
+        ),
       ],
     );
   }

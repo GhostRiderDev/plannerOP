@@ -128,7 +128,7 @@ class _HistoryOperationsViewState extends State<HistoryOperationsView> {
         }
 
         // Obtener todas las asignaciones y ordenarlas por fecha más reciente
-        final allCompletedAssignments = provider.completedAssignments;
+        final allCompletedAssignments = provider.completedOperations;
 
         // Ordenar las asignaciones por fecha de finalización (más reciente primero)
         allCompletedAssignments.sort((a, b) {

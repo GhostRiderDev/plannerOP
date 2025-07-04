@@ -23,8 +23,10 @@ class SelectedWorkersList extends StatefulWidget {
   final List<Worker> availableWorkers;
   final List<WorkerGroup>? initialGroups;
   final int? assignmentId;
+  Function(WorkerGroup, List<Worker>)? onWorkersAddedToGroup;
+  Function(WorkerGroup, List<Worker>)? onWorkersRemovedFromGroup;
 
-  const SelectedWorkersList({
+  SelectedWorkersList({
     Key? key,
     required this.selectedWorkers,
     required this.selectedGroups,
@@ -36,6 +38,8 @@ class SelectedWorkersList extends StatefulWidget {
     this.onDeletedWorkersChanged,
     this.initialGroups,
     this.assignmentId,
+    this.onWorkersAddedToGroup,
+    this.onWorkersRemovedFromGroup,
   }) : super(key: key);
 
   @override
@@ -108,10 +112,12 @@ class _SelectedWorkersListState extends State<SelectedWorkersList> {
     await _calculateWorkerHours();
 
     final result = await createWorkerGroup(
-        context: context,
-        filteredWorkers: _filteredWorkers,
-        workerHours: _workerHours,
-        selectedWorkers: widget.selectedWorkers);
+      context: context,
+      filteredWorkers: _filteredWorkers,
+      workerHours: _workerHours,
+      selectedWorkers: widget.selectedWorkers,
+      existingGroups: widget.selectedGroups,
+    );
 
     if (result != null) {
       final newGroup = result.group;
@@ -137,7 +143,7 @@ class _SelectedWorkersListState extends State<SelectedWorkersList> {
 
   // Eliminar un grupo
   void _onDeleteGroup(WorkerGroup group, int assignmentId) {
-    // Optimización: Solo eliminar los trabajadores que pertenecen ÚNICAMENTE a este grupo
+    //  Solo eliminar los trabajadores que pertenecen ÚNICAMENTE a este grupo
     deleteWorkerGroup(
       context: context,
       group: group,
@@ -190,6 +196,8 @@ class _SelectedWorkersListState extends State<SelectedWorkersList> {
           onDeletedWorkersChanged: widget.onDeletedWorkersChanged,
           onWorkersChanged: widget.onWorkersChanged,
           onGroupsChanged: widget.onGroupsChanged,
+          onWorkersAddedToGroup: widget.onWorkersAddedToGroup,
+          onWorkersRemovedFromGroup: widget.onWorkersRemovedFromGroup,
         ),
 
         // Información adicional

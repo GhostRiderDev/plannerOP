@@ -17,6 +17,8 @@ class ClientService {
       final jsonResponse = jsonDecode(response.body);
       List<Client> clients = [];
       for (var client in jsonResponse) {
+        if (client['status'] != 'ACTIVE')
+          continue; // Filtrar clientes inactivos
         clients.add(Client(id: client['id'], name: client['name']));
       }
       return FetchclientsDto(clients: clients, isSuccess: true);

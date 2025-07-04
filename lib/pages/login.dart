@@ -17,6 +17,7 @@ class _LoginPageState extends State<LoginPage> {
   final FocusNode _usernameFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
   bool _isLoading = false;
+  bool _passVisibility = true;
 
   void _onFocusChange() {
     setState(() {});
@@ -87,6 +88,7 @@ class _LoginPageState extends State<LoginPage> {
                               BorderRadius.circular(12)),
                         ),
                         child: TextFormField(
+                          key: Key('signin_username_field'),
                           controller: _usernameController,
                           focusNode: _usernameFocusNode,
                           decoration: const InputDecoration(
@@ -116,16 +118,27 @@ class _LoginPageState extends State<LoginPage> {
                               BorderRadius.circular(12)),
                         ),
                         child: TextFormField(
+                          key: Key('signin_password_field'),
                           controller: _passwordController,
                           focusNode: _passwordFocusNode,
-                          decoration: const InputDecoration(
+                          obscureText: _passVisibility,
+                          decoration: InputDecoration(
                             labelText: 'Contraseña',
                             prefixIcon: Icon(Icons.lock),
                             border: InputBorder.none,
                             filled: true,
                             fillColor: Colors.white,
+                            suffixIcon: IconButton(
+                              icon: _passVisibility
+                                  ? Icon(Icons.visibility_off)
+                                  : Icon(Icons.visibility),
+                              onPressed: () {
+                                _passVisibility = !_passVisibility;
+
+                                setState(() {});
+                              },
+                            ),
                           ),
-                          obscureText: true,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return 'Por favor ingrese su contraseña';
@@ -161,6 +174,7 @@ class _LoginPageState extends State<LoginPage> {
                         child: const Center(
                           child: Text(
                             'Ingresar',
+                            key: Key('signin_button'),
                             style: TextStyle(
                               fontSize: 20, // Aumenta el tamaño del texto
                               fontWeight: FontWeight.bold,

@@ -306,15 +306,33 @@ class GroupCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 6),
                   Expanded(
-                    child: Text(
-                      getServiceName(context, group.serviceId),
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: isGroupCompleted
-                            ? const Color(0xFF38A169)
-                            : const Color(0xFF2D3748),
-                      ),
+                    child: FutureBuilder<String>(
+                      future: getServiceName(context, group.serviceId),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData) {
+                          return Text(
+                            snapshot.data!,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: isGroupCompleted
+                                  ? const Color(0xFF38A169)
+                                  : const Color(0xFF2D3748),
+                            ),
+                          );
+                        } else {
+                          return Text(
+                            'Cargando...',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: isGroupCompleted
+                                  ? const Color(0xFF38A169)
+                                  : const Color(0xFF2D3748),
+                            ),
+                          );
+                        }
+                      },
                     ),
                   ),
                 ],

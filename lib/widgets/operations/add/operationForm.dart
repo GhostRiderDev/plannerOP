@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:plannerop/core/model/area.dart';
 import 'package:plannerop/core/model/client.dart';
 import 'package:plannerop/core/model/programming.dart';
-import 'package:plannerop/store/task.dart';
 import 'package:plannerop/widgets/operations/add/programmingSelector.dart';
 import 'package:plannerop/widgets/operations/components/utils/timeField.dart';
-import 'package:provider/provider.dart';
 import '../components/utils/dropdownField.dart';
 import '../components/utils/dateField.dart';
 
@@ -175,12 +173,6 @@ class _AssignmentFormState extends State<OperationForm> {
     // Crear la lista de zonas del 1 al 10
     final List<String> zones =
         List.generate(10, (index) => 'Zona ${index + 1}');
-
-    // Obtener tareas del provider
-    final tasksProvider = Provider.of<TasksProvider>(context);
-    final List<String> taskNames = tasksProvider.tasks.isNotEmpty
-        ? tasksProvider.taskNames.map((n) => n.toUpperCase()).toList()
-        : []; // Tareas de respaldo
 
     return Column(
       children: [

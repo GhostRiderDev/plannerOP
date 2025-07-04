@@ -31,7 +31,7 @@ void showAssignmentSuccessDialog({
               ),
               const SizedBox(height: 16),
               const Text(
-                '¡Asignación creada exitosamente!',
+                '¡Operación creada exitosamente!',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 18,

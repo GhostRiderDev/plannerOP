@@ -10,8 +10,8 @@ import 'package:plannerop/store/workers.dart';
 import 'package:plannerop/utils/operations.dart';
 import 'package:plannerop/utils/toast.dart';
 import 'package:plannerop/widgets/operations/components/utils/dateField.dart';
-import 'package:plannerop/widgets/operations/components/workers/selected_worker_list.dart';
 import 'package:plannerop/widgets/operations/components/utils/timeField.dart';
+import 'package:plannerop/widgets/operations/components/workers/workerList.dart';
 import 'package:provider/provider.dart';
 
 class EditOperationForm extends StatefulWidget {
@@ -33,7 +33,6 @@ class EditOperationForm extends StatefulWidget {
 class EditOperationFormState extends State<EditOperationForm> {
   // Controladores
   late TextEditingController _areaController;
-  late TextEditingController _taskController;
   late TextEditingController _startDateController;
   late TextEditingController _startTimeController;
   late TextEditingController _endDateController;
@@ -43,15 +42,20 @@ class EditOperationFormState extends State<EditOperationForm> {
   late TextEditingController _clientController;
 
   // Estado de la edición
-  late List<Worker> _selectedWorkers;
+  List<Worker> _selectedWorkers = []; // Inicializar como lista vacía
   bool _isShipArea = false;
   late List<WorkerGroup> _selectedGroups;
+
+  Map<String, List<int>> _workersAddedToGroups = {};
+  Map<String, List<int>> _workersRemovedFromGroups = {};
 
   // Contadores para forzar la reconstrucción de los campos de fecha/hora
   final int _dateUpdateCounter = 0;
   int _timeUpdateCounter = 0;
   final int _endDateUpdateCounter = 0;
   int _endTimeUpdateCounter = 0;
+  bool _isSaving = false;
+
   @override
   void initState() {
     super.initState();
@@ -61,7 +65,6 @@ class EditOperationFormState extends State<EditOperationForm> {
 
     // Inicializar controladores con los datos de la operación
     _areaController = TextEditingController(text: widget.assignment.area);
-    // _taskController = TextEditingController(text: widget.assignment.task);
     _startDateController = TextEditingController(
       text: DateFormat('dd/MM/yyyy').format(widget.assignment.date),
     );
@@ -81,15 +84,13 @@ class EditOperationFormState extends State<EditOperationForm> {
     );
     _clientController = TextEditingController();
 
-    // Inicializar trabajadores seleccionados
-    // _selectedWorkers = List.from(widget.assignment.workers);
-
     // Verificar si es un área de barco
     _checkIfShipArea(widget.assignment.area);
 
     // Buscar el nombre del cliente después del build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeClientName();
+      _initializeWorkers();
 
       // IMPORTANTE: Forzar sincronización de grupos al inicializar
       if (_selectedGroups.isNotEmpty) {
@@ -105,6 +106,54 @@ class EditOperationFormState extends State<EditOperationForm> {
     if (client != null) {
       _clientController.text = client.name;
     }
+  }
+
+  void _initializeWorkers() {
+    final workersProvider =
+        Provider.of<WorkersProvider>(context, listen: false);
+    List<Worker> operationWorkers = [];
+
+    // Recopilar todos los trabajadores de los grupos
+    for (var group in widget.assignment.groups) {
+      for (var workerId in group.workers) {
+        // Buscar el trabajador en workersData del grupo o en el provider
+        Worker? worker;
+
+        if (group.workersData != null && group.workersData!.isNotEmpty) {
+          worker =
+              group.workersData!.where((w) => w.id == workerId).firstOrNull;
+        }
+
+        // Si no se encuentra en workersData, buscar en el provider
+        if (worker == null) {
+          worker = workersProvider.getWorkerById(workerId);
+          if (worker.id == 0) {
+            // Si no se encuentra en el provider, crear un worker básico
+            worker = Worker(
+              id: workerId,
+              name: 'Trabajador #$workerId',
+              area: widget.assignment.area,
+              phone: '',
+              document: '',
+              status: WorkerStatus.assigned,
+              startDate: DateTime.now(),
+              code: '',
+              failures: 0,
+              idArea: widget.assignment.areaId,
+            );
+          }
+        }
+
+        // Evitar duplicados
+        if (!operationWorkers.any((w) => w.id == worker!.id)) {
+          operationWorkers.add(worker);
+        }
+      }
+    }
+
+    setState(() {
+      _selectedWorkers = operationWorkers;
+    });
   }
 
   void _checkIfShipArea(String area) {
@@ -125,10 +174,113 @@ class EditOperationFormState extends State<EditOperationForm> {
     });
   }
 
+  void _handleWorkersAddedToGroup(WorkerGroup group, List<Worker> newWorkers) {
+    setState(() {
+      // Actualizar el grupo con los nuevos trabajadores
+      final updatedGroup = WorkerGroup(
+        id: group.id,
+        name: group.name,
+        startTime: group.startTime,
+        endTime: group.endTime,
+        startDate: group.startDate,
+        endDate: group.endDate,
+        serviceId: group.serviceId,
+        workers: [...group.workers, ...newWorkers.map((w) => w.id)],
+        workersData: [...(group.workersData ?? []), ...newWorkers],
+      );
+
+      // Actualizar la lista de grupos
+      final groupIndex = _selectedGroups.indexWhere((g) => g.id == group.id);
+      if (groupIndex >= 0) {
+        _selectedGroups[groupIndex] = updatedGroup;
+      }
+
+      // Trackear cambios para el API
+      final groupId = group.id ?? "SIN_ID";
+      if (!_workersAddedToGroups.containsKey(groupId)) {
+        _workersAddedToGroups[groupId] = [];
+      }
+      _workersAddedToGroups[groupId]!.addAll(newWorkers.map((w) => w.id));
+
+      // Añadir a la lista de trabajadores seleccionados si no están
+      for (var worker in newWorkers) {
+        if (!_selectedWorkers.any((w) => w.id == worker.id)) {
+          _selectedWorkers.add(worker);
+        }
+      }
+    });
+  }
+
+  void _handleWorkersRemovedFromGroup(
+      WorkerGroup group, List<Worker> removedWorkers) {
+    setState(() {
+      // Trackear TODOS los trabajadores removidos para el API
+      final groupId = group.id ?? "SIN_ID";
+      if (!_workersRemovedFromGroups.containsKey(groupId)) {
+        _workersRemovedFromGroups[groupId] = [];
+      }
+      _workersRemovedFromGroups[groupId]!
+          .addAll(removedWorkers.map((w) => w.id));
+
+      // Verificar si se están removiendo TODOS los trabajadores del grupo
+      final allWorkersInGroup = group.workersData ?? [];
+      final removedWorkerIds = removedWorkers.map((w) => w.id).toSet();
+      final allWorkerIdsInGroup = allWorkersInGroup.map((w) => w.id).toSet();
+
+      // CORREGIR: Usar containsAll en lugar de isSubsetOf
+      final isRemovingAllWorkers =
+          removedWorkerIds.containsAll(allWorkerIdsInGroup);
+
+      if (isRemovingAllWorkers ||
+          removedWorkers.length == allWorkersInGroup.length) {
+        // ELIMINAR el grupo completamente de la lista
+        _selectedGroups.removeWhere((g) => g.id == group.id);
+      } else {
+        // Solo actualizar el grupo removiendo algunos trabajadores
+        final updatedWorkerIds = group.workers
+            .where((id) => !removedWorkers.any((w) => w.id == id))
+            .toList();
+
+        final updatedWorkersData = group.workersData
+                ?.where(
+                    (w) => !removedWorkers.any((removed) => removed.id == w.id))
+                .toList() ??
+            [];
+
+        final updatedGroup = WorkerGroup(
+          id: group.id,
+          name: group.name,
+          startTime: group.startTime,
+          endTime: group.endTime,
+          startDate: group.startDate,
+          endDate: group.endDate,
+          serviceId: group.serviceId,
+          workers: updatedWorkerIds,
+          workersData: updatedWorkersData,
+        );
+
+        // Actualizar el grupo en la lista
+        final groupIndex = _selectedGroups.indexWhere((g) => g.id == group.id);
+        if (groupIndex >= 0) {
+          _selectedGroups[groupIndex] = updatedGroup;
+        }
+      }
+
+      // Remover de la lista de trabajadores seleccionados si no están en otros grupos
+      for (var worker in removedWorkers) {
+        final isInOtherGroups = _selectedGroups
+            .any((g) => g.id != group.id && g.workers.contains(worker.id));
+
+        if (!isInOtherGroups) {
+          _selectedWorkers.removeWhere((w) => w.id == worker.id);
+        }
+      }
+    });
+  }
+
   @override
   void dispose() {
     _areaController.dispose();
-    _taskController.dispose();
     _startDateController.dispose();
     _startTimeController.dispose();
     _endDateController.dispose();
@@ -139,12 +291,9 @@ class EditOperationFormState extends State<EditOperationForm> {
     super.dispose();
   }
 
-  // Dentro de la clase _EditAssignmentFormState, modifica el método build()
-
   @override
   Widget build(BuildContext context) {
     final clientsProvider = Provider.of<ClientsProvider>(context);
-    final workersProvider = Provider.of<WorkersProvider>(context);
 
     var client = clientsProvider.getClientById(widget.assignment.clientId);
     client ??=
@@ -171,7 +320,7 @@ class EditOperationFormState extends State<EditOperationForm> {
               children: [
                 const Expanded(
                   child: Text(
-                    'Editar Asignación',
+                    'Editar Operación',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -197,32 +346,13 @@ class EditOperationFormState extends State<EditOperationForm> {
                   // Selector de trabajadores con soporte para grupos
                   SelectedWorkersList(
                     selectedWorkers: _selectedWorkers,
+                    onWorkersChanged: _updateSelectedWorkers,
+                    availableWorkers: _allWorkers,
                     selectedGroups: _selectedGroups,
-                    availableWorkers: workersProvider.getWorkersAvailable(),
-                    onWorkersChanged: (workers) {
-                      setState(() {
-                        _selectedWorkers = workers;
-                      });
-                    },
-                    onGroupsChanged: (groups) {
-                      setState(() {
-                        _selectedGroups = groups;
-                        // Al cambiar grupos, procesar las fechas y horas
-                        _processGroupSchedules();
-                      });
-                    },
-                    inEditMode: true, // Indicar que estamos en modo edición
-                    deletedWorkers: widget.assignment.deletedWorkers,
-                    onDeletedWorkersChanged: (deletedWorkers) {
-                      setState(() {
-                        widget.assignment.deletedWorkers = deletedWorkers;
-                      });
-                    },
-                    // Agregar esta línea para sincronizar _workerGroups con selectedGroups
-                    initialGroups: _selectedGroups,
-                    assignmentId: widget.assignment.id,
+                    onGroupsChanged: updateSelectedGroups,
+                    onWorkersAddedToGroup: _handleWorkersAddedToGroup,
+                    onWorkersRemovedFromGroup: _handleWorkersRemovedFromGroup,
                   ),
-
                   const SizedBox(height: 20),
 
                   // Campo de área (NO editable)
@@ -311,13 +441,6 @@ class EditOperationFormState extends State<EditOperationForm> {
                     isOptional: true,
                   ),
 
-                  // // Campo de tarea/servicio (NO editable)
-                  // buildNonEditableField(
-                  //   label: 'Servicio',
-                  //   value: widget.assignment.task,
-                  //   icon: Icons.assignment_outlined,
-                  // ),
-
                   // Campo de zona (NO editable)
                   buildNonEditableField(
                     label: 'Zona',
@@ -354,18 +477,17 @@ class EditOperationFormState extends State<EditOperationForm> {
               children: [
                 NeumorphicButton(
                   style: NeumorphicStyle(
-                    depth: 2,
+                    depth: _isSaving ? 0 : 2,
                     intensity: 0.7,
-                    color: const Color(0xFF718096),
+                    color: _isSaving ? Colors.grey[300] : Colors.white,
                     boxShape:
                         NeumorphicBoxShape.roundRect(BorderRadius.circular(8)),
                   ),
-                  onPressed: widget.onCancel,
-                  child: const Text(
+                  onPressed: _isSaving ? null : widget.onCancel,
+                  child: Text(
                     'Cancelar',
-                    textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Colors.white,
+                      color: _isSaving ? Colors.grey[600] : Colors.black,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -373,19 +495,51 @@ class EditOperationFormState extends State<EditOperationForm> {
                 const SizedBox(width: 16),
                 NeumorphicButton(
                   style: NeumorphicStyle(
-                    depth: 2,
+                    depth: _isSaving ? 0 : 2,
                     intensity: 0.7,
-                    color: const Color(0xFF3182CE),
+                    color: _isSaving
+                        ? const Color(0xFF90CDF4)
+                        : const Color(0xFF3182CE),
                     boxShape:
                         NeumorphicBoxShape.roundRect(BorderRadius.circular(8)),
                   ),
-                  onPressed: () => _saveChanges(context),
-                  child: const Text(
-                    'Guardar Cambios',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
+                  onPressed: _isSaving ? null : () => _saveChanges(context),
+                  child: Container(
+                    width: 140,
+                    height: 40,
+                    child: Center(
+                      child: _isSaving
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Guardando...',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : const Text(
+                              'Guardar Cambios',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                     ),
                   ),
                 ),
@@ -395,6 +549,26 @@ class EditOperationFormState extends State<EditOperationForm> {
         ],
       ),
     );
+  }
+
+  void _updateSelectedWorkers(List<Worker> workers) {
+    setState(() {
+      _selectedWorkers = workers;
+    });
+  }
+
+  void updateSelectedGroups(List<WorkerGroup> groups) {
+    setState(() {
+      _selectedGroups = groups;
+    });
+    // Procesar horarios cuando cambien los grupos
+    _processGroupSchedules();
+  }
+
+  List<Worker> get _allWorkers {
+    final workersProvider =
+        Provider.of<WorkersProvider>(context, listen: false);
+    return workersProvider.workers;
   }
 
   void _processGroupSchedules() {
@@ -489,6 +663,12 @@ class EditOperationFormState extends State<EditOperationForm> {
   }
 
   void _saveChanges(BuildContext context) {
+    // Prevenir múltiples envíos
+    if (_isSaving) return;
+
+    setState(() {
+      _isSaving = true;
+    });
     try {
       // Validaciones
       if (_selectedWorkers.isEmpty) {
@@ -530,42 +710,28 @@ class EditOperationFormState extends State<EditOperationForm> {
 
       // Identificar trabajadores agregados y removidos para actualizar su estado
       final List<Worker> addedWorkers = [];
-      final List<Worker> removedWorkers = [];
 
-      // // Encontrar trabajadores que se añadieron (están en selectedWorkers pero no en assignment.workers)
-      // for (var worker in _selectedWorkers) {
-      //   if (!widget.assignment.workers.any((w) => w.id == worker.id)) {
-      //     addedWorkers.add(worker);
-      //   }
-      // }
+      // Recopilar trabajadores originales de los grupos existentes
+      List<Worker> originalWorkers = [];
+      for (var group in widget.assignment.groups) {
+        for (var workerId in group.workers) {
+          final worker = workersProvider.getWorkerById(workerId);
+          if (worker.id != 0 &&
+              !originalWorkers.any((w) => w.id == worker.id)) {
+            originalWorkers.add(worker);
+          }
+        }
+      }
 
-      // // Encontrar trabajadores que se quitaron (están en assignment.workers pero no en selectedWorkers)
-      // for (var worker in widget.assignment.workers) {
-      //   if (!_selectedWorkers.any((w) => w.id == worker.id)) {
-      //     removedWorkers.add(worker);
-      //   }
-      // }
+      // Encontrar trabajadores que se añadieron
+      for (var worker in _selectedWorkers) {
+        if (!originalWorkers.any((w) => w.id == worker.id)) {
+          addedWorkers.add(worker);
+        }
+      }
 
       List<int> individualWorkerIds = [];
       List<Map<String, dynamic>> groupsToConnect = [];
-
-      // Separar trabajadores individuales de los grupos
-      for (var worker in addedWorkers) {
-        // Verificar si el trabajador pertenece a algún grupo
-        bool isInGroup = false;
-
-        for (var group in _selectedGroups) {
-          if (group.workers.contains(worker.id)) {
-            isInGroup = true;
-            break;
-          }
-        }
-
-        // Si no está en ningún grupo, añadirlo como individual
-        if (!isInGroup) {
-          individualWorkerIds.add(worker.id);
-        }
-      }
 
       // Procesar los grupos nuevos para el API
       for (var group in _selectedGroups) {
@@ -598,20 +764,19 @@ class EditOperationFormState extends State<EditOperationForm> {
 
       // Actualizar estados de los trabajadores
       for (var worker in addedWorkers) {
-        workersProvider.assignWorkerObject(worker, context);
+        workersProvider.assignWorkerToOperation(worker, context);
       }
 
-      // TODO VERIFICAR ESTO EN EL BACKEND
-      // for (var worker in removedWorkers) {
-      //   workersProvider.releaseWorkerObject(worker, context);
-      // }
+      assignmentsProvider.removeGroupFromOperation(
+        _workersRemovedFromGroups,
+        context,
+        widget.assignment.id!,
+      );
 
       // Crear la operación actualizada con los valores editables
       final updatedAssignment = Operation(
         id: widget.assignment.id,
-        // workers: _selectedWorkers,
         area: widget.assignment.area, // No editable
-        // task: widget.assignment.task, // No editable
         date: startDate, // Editable
         time: _startTimeController.text, // Editable
         zone: widget.assignment.zone, // No editable
@@ -625,7 +790,6 @@ class EditOperationFormState extends State<EditOperationForm> {
             : null, // Editable si es área de buque
         userId: widget.assignment.userId, // No editable
         areaId: widget.assignment.areaId, // No editable
-        // taskId: widget.assignment.taskId, // No editable
         clientId: widget.assignment.clientId, // No editable
         deletedWorkers:
             widget.assignment.deletedWorkers, // Include deleted workers
@@ -633,14 +797,6 @@ class EditOperationFormState extends State<EditOperationForm> {
         groups: _selectedGroups, // Añadir los grupos seleccionados
         id_clientProgramming:
             widget.assignment.id_clientProgramming, // No editable
-      );
-      // Mostrar indicador de carga
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
       );
 
       // Si hay trabajadores para conectar, llamar a la nueva función
@@ -688,27 +844,18 @@ Future<void> showEditAssignmentForm(
           // Cerrar el formulario primero
           Navigator.pop(context);
 
-          // Mostrar indicador de carga
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => const Center(
-              child: CircularProgressIndicator(),
-            ),
-          );
-
           try {
             // Actualizar la operación
-            final success = await assignmentsProvider.updateAssignment(
-              updatedAssignment,
-              context,
+            final success = await assignmentsProvider.updateOperation(
+              id: updatedAssignment.id!,
+              status: updatedAssignment.status,
+              endDate: updatedAssignment.endDate,
+              endTime: updatedAssignment.endTime,
+              context: context,
             );
 
-            // Cerrar indicador de carga
-            Navigator.pop(context);
-
             if (success) {
-              showSuccessToast(context, 'Asignación actualizada correctamente');
+              showSuccessToast(context, 'Operación actualizada correctamente');
             } else {
               showErrorToast(context, 'No se pudo actualizar la operación');
             }

@@ -81,6 +81,8 @@ Widget buildWorkerList({
   required Function(List<Worker>)? onDeletedWorkersChanged,
   required Function(List<Worker>) onWorkersChanged,
   required Function(List<WorkerGroup>)? onGroupsChanged,
+  Function(WorkerGroup, List<Worker>)? onWorkersAddedToGroup,
+  Function(WorkerGroup, List<Worker>)? onWorkersRemovedFromGroup,
 }) {
   if (selectedWorkers.isEmpty && selectedGroups.isEmpty) {
     return Container(
@@ -102,7 +104,6 @@ Widget buildWorkerList({
     );
   }
 
-  debugPrint("groups: ${selectedGroups.length}");
 
   return Container(
     key: ValueKey(
@@ -117,25 +118,6 @@ Widget buildWorkerList({
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // SECCIÓN 1: TRABAJADORES INDIVIDUALES (que no están en grupos)
-        if (selectedWorkers.isNotEmpty)
-          _buildIndividualsSection(
-            context: context,
-            workerHours: workerHours,
-            selectedWorkers: selectedWorkers,
-            selectedGroups: selectedGroups,
-            assignmentId: assignmentId,
-            inEditMode: inEditMode,
-            deletedWorkers: deletedWorkers,
-            onDeletedWorkersChanged: onDeletedWorkersChanged,
-            onWorkersChanged: onWorkersChanged,
-            onGroupsChanged: onGroupsChanged,
-          ),
-
-        // Separador visual para mejorar la claridad entre secciones
-        if (selectedWorkers.isNotEmpty && selectedGroups.isNotEmpty)
-          const SizedBox(height: 16),
-
         // SECCIÓN 2: GRUPOS DE TRABAJADORES
         if (selectedGroups.isNotEmpty)
           _buildGroupsSection(
@@ -150,87 +132,13 @@ Widget buildWorkerList({
             onDeletedWorkersChanged: onDeletedWorkersChanged,
             onWorkersChanged: onWorkersChanged,
             onGroupsChanged: onGroupsChanged,
+            onWorkersAddedToGroup: onWorkersAddedToGroup,
+            onWorkersRemovedFromGroup: onWorkersRemovedFromGroup,
           ),
 
         // Información adicional sobre horas
         if (selectedWorkers.isNotEmpty && workerHours.isNotEmpty)
           buildHoursInfoText(),
-      ],
-    ),
-  );
-}
-
-// Nueva función para construir la sección de trabajadores individuales
-Widget _buildIndividualsSection({
-  required BuildContext context,
-  required Map<int, double> workerHours,
-  required List<Worker> selectedWorkers,
-  required List<WorkerGroup> selectedGroups,
-  required int? assignmentId,
-  required bool inEditMode,
-  required List<Worker> deletedWorkers,
-  required Function(List<Worker>)? onDeletedWorkersChanged,
-  required Function(List<Worker>) onWorkersChanged,
-  required Function(List<WorkerGroup>)? onGroupsChanged,
-}) {
-  return Container(
-    margin: const EdgeInsets.only(bottom: 8),
-    decoration: BoxDecoration(
-      border: Border.all(color: const Color(0xFFEBF8FF)), // Borde azul claro
-      borderRadius: BorderRadius.circular(8),
-      color: Colors.white,
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Encabezado de la sección
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color:
-                const Color(0xFFEBF8FF), // Fondo azul claro para individuales
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(7)),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.person_outline,
-                  size: 16, color: Color(0xFF2B6CB0)),
-              const SizedBox(width: 8),
-              Text(
-                'Trabajadores individuales',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  color: Color(0xFF2B6CB0),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        // Lista de trabajadores individuales
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: selectedWorkers.length,
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          itemBuilder: (context, index) {
-            final worker = selectedWorkers[index];
-            return _buildIndividualWorkerItem(
-              context: context,
-              worker: worker,
-              workerHours: workerHours,
-              selectedWorkers: selectedWorkers,
-              selectedGroups: selectedGroups,
-              assignmentId: assignmentId,
-              inEditMode: inEditMode,
-              deletedWorkers: deletedWorkers,
-              onDeletedWorkersChanged: onDeletedWorkersChanged,
-              onWorkersChanged: onWorkersChanged,
-              onGroupsChanged: onGroupsChanged,
-            );
-          },
-        ),
       ],
     ),
   );
@@ -249,6 +157,8 @@ Widget _buildGroupsSection({
   required Function(List<Worker>)? onDeletedWorkersChanged,
   required Function(List<Worker>) onWorkersChanged,
   required Function(List<WorkerGroup>)? onGroupsChanged,
+  Function(WorkerGroup, List<Worker>)? onWorkersAddedToGroup,
+  Function(WorkerGroup, List<Worker>)? onWorkersRemovedFromGroup,
 }) {
   return Container(
     decoration: BoxDecoration(
@@ -323,60 +233,12 @@ Widget _buildGroupsSection({
               onWorkersChanged: onWorkersChanged,
               onGroupsChanged: onGroupsChanged,
               workers: group.workersData ?? [],
+              onWorkersAddedToGroup: onWorkersAddedToGroup,
+              onWorkersRemovedFromGroup: onWorkersRemovedFromGroup,
             );
           },
         ),
       ],
-    ),
-  );
-}
-
-// Widget para un trabajador individual
-Widget _buildIndividualWorkerItem({
-  required BuildContext context,
-  required Worker worker,
-  required Map<int, double> workerHours,
-  required List<Worker> selectedWorkers,
-  required List<WorkerGroup> selectedGroups,
-  required int? assignmentId,
-  required bool inEditMode,
-  required List<Worker> deletedWorkers,
-  required Function(List<Worker>)? onDeletedWorkersChanged,
-  required Function(List<Worker>) onWorkersChanged,
-  required Function(List<WorkerGroup>)? onGroupsChanged,
-}) {
-  final isAvailable = isWorkerAvailable(worker.id, workerHours);
-
-  return Card(
-    margin: const EdgeInsets.only(bottom: 4),
-    elevation: 0,
-    color: const Color(0xFFF7FAFC),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(6),
-      side: isAvailable
-          ? BorderSide.none
-          : const BorderSide(color: Colors.red, width: 0.5),
-    ),
-    child: buildWorkerDetails(
-      context: context,
-      worker: worker,
-      workerHours: workerHours,
-      isAvailable: isAvailable,
-      onDelete: () => removeWorker(
-        context: context,
-        worker: worker,
-        index: selectedWorkers.indexOf(worker),
-        selectedWorkers: selectedWorkers,
-        selectedGroups: selectedGroups,
-        workerGroup: null, // Individualmente, no tiene grupo
-        assignmentId: assignmentId,
-        inEditMode: inEditMode,
-        deletedWorkers: deletedWorkers,
-        onDeletedWorkersChanged: onDeletedWorkersChanged,
-        onWorkersChanged: onWorkersChanged,
-        onGroupsChanged: onGroupsChanged,
-        removeFromGroupOnly: false, // Eliminar completamente
-      ),
     ),
   );
 }
@@ -395,6 +257,8 @@ Widget _buildGroupSection({
   required Function(List<Worker>)? onDeletedWorkersChanged,
   required Function(List<Worker>) onWorkersChanged,
   required Function(List<WorkerGroup>)? onGroupsChanged,
+  Function(WorkerGroup, List<Worker>)? onWorkersAddedToGroup,
+  Function(WorkerGroup, List<Worker>)? onWorkersRemovedFromGroup,
 }) {
   // Obtener la tarea correspondiente al grupo
   final tasksProvider = Provider.of<TasksProvider>(context, listen: false);
@@ -450,7 +314,14 @@ Widget _buildGroupSection({
                   IconButton(
                     icon: const Icon(Icons.delete,
                         color: Colors.white70, size: 20),
-                    onPressed: () => onDeleteGroup(group, assignmentId ?? 0),
+                    onPressed: () => _deleteCompleteGroup(
+                      context: context,
+                      group: group,
+                      workers: workers,
+                      onWorkersRemovedFromGroup: onWorkersRemovedFromGroup,
+                      onDeleteGroup: onDeleteGroup,
+                      assignmentId: assignmentId,
+                    ),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                     tooltip: 'Eliminar grupo',
@@ -549,24 +420,17 @@ Widget _buildGroupSection({
                     ),
                   ],
                 ),
-                // trailing: IconButton(
-                //   icon: const Icon(Icons.remove_circle_outline,
-                //       color: Color(0xFF38A169), size: 20),
-                //   onPressed: () => removeWorker(
-                //     context: context,
-                //     worker: worker,
-                //     selectedGroups: selectedGroups,
-                //     workerGroup: group,
-                //     assignmentId: assignmentId,
-                //     inEditMode: inEditMode,
-                //     deletedWorkers: deletedWorkers,
-                //     onDeletedWorkersChanged: onDeletedWorkersChanged,
-                //     onWorkersChanged: onWorkersChanged,
-                //     onGroupsChanged: onGroupsChanged,
-                //     removeFromGroupOnly: true, // Solo eliminar del grupo
-                //   ),
-                //   tooltip: 'Quitar del grupo',
-                // ),
+                trailing: IconButton(
+                  icon: const Icon(Icons.remove_circle_outline,
+                      color: Color(0xFF38A169), size: 20),
+                  onPressed: () => _removeWorkerFromGroup(
+                    context: context,
+                    worker: worker,
+                    group: group,
+                    onWorkersRemovedFromGroup: onWorkersRemovedFromGroup,
+                  ),
+                  tooltip: 'Quitar del grupo',
+                ),
               );
             },
           ),
@@ -574,6 +438,41 @@ Widget _buildGroupSection({
       ],
     ),
   );
+}
+
+void _deleteCompleteGroup({
+  required BuildContext context,
+  required WorkerGroup group,
+  required List<Worker> workers,
+  required Function(WorkerGroup, List<Worker>)? onWorkersRemovedFromGroup,
+  required Function(WorkerGroup, int) onDeleteGroup,
+  required int? assignmentId,
+}) {
+  if (onWorkersRemovedFromGroup != null && workers.isNotEmpty) {
+    onWorkersRemovedFromGroup(group, workers);
+  } else {
+    debugPrint("No callback available or no workers in group");
+
+    // Fallback al método original si no hay callback
+    if (assignmentId != null) {
+      onDeleteGroup(group, assignmentId);
+    }
+  }
+}
+
+void _removeWorkerFromGroup({
+  required BuildContext context,
+  required Worker worker,
+  required WorkerGroup group,
+  required Function(WorkerGroup, List<Worker>)? onWorkersRemovedFromGroup,
+}) {
+  if (onWorkersRemovedFromGroup != null) {
+    debugPrint(
+        "Removing worker ${worker.name} from group ${group.name} via callback");
+    onWorkersRemovedFromGroup(group, [worker]);
+  } else {
+    debugPrint("No callback available for removing worker from group");
+  }
 }
 
 // Función para eliminar un trabajador (con opción para solo quitarlo del grupo)
@@ -590,7 +489,7 @@ void removeWorker({
   required Function(List<Worker>)? onDeletedWorkersChanged,
   required Function(List<Worker>) onWorkersChanged,
   required Function(List<WorkerGroup>)? onGroupsChanged,
-  bool removeFromGroupOnly = false, // Nuevo parámetro
+  bool removeFromGroupOnly = true, // Nuevo parámetro
 }) {
   // Si solo queremos quitar al trabajador del grupo pero dejarlo como individual
   if (removeFromGroupOnly && workerGroup != null) {
@@ -622,11 +521,6 @@ void removeWorker({
 
     return;
   }
-
-  // Si queremos eliminar al trabajador por completo
-  final List<Worker> updatedWorkers = List.from(selectedWorkers);
-  updatedWorkers.removeAt(index);
-  onWorkersChanged(updatedWorkers);
 
   // Si estamos en modo edición, también actualizamos la lista de trabajadores eliminados
   if (inEditMode && assignmentId != null && onDeletedWorkersChanged != null) {

@@ -12,49 +12,6 @@ class TaskService {
   final String API_URL = dotenv.get('API_URL');
 
   // Método para obtener tareas con token directo
-  Future<FetchTasksDto> fetchTasksWithToken(String token) async {
-    try {
-      var url = Uri.parse('$API_URL/task');
-      var response = await http.get(
-        url,
-        headers: {'Authorization': 'Bearer $token'},
-      );
-
-      if (response.statusCode == 200) {
-        final jsonResponse = jsonDecode(response.body);
-
-        final List<Task> tasks = [];
-        for (var t in jsonResponse) {
-          try {
-            tasks.add(Task.fromJson(t));
-          } catch (e) {
-            debugPrint('Error procesando tarea: $e');
-          }
-        }
-
-        return FetchTasksDto(
-          tasks: tasks,
-          isSuccess: true,
-        );
-      } else {
-        debugPrint('Error en API: ${response.statusCode} - ${response.body}');
-        return FetchTasksDto(
-          tasks: [],
-          isSuccess: false,
-          errorMessage: 'Error al obtener tareas: ${response.statusCode}',
-        );
-      }
-    } catch (e) {
-      debugPrint('Error en fetchTasks: $e');
-      return FetchTasksDto(
-        tasks: [],
-        isSuccess: false,
-        errorMessage: 'Error: $e',
-      );
-    }
-  }
-
-  // Método que utiliza el contexto para obtener el token
   Future<FetchTasksDto> fetchTasks(BuildContext context) async {
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -69,9 +26,38 @@ class TaskService {
         );
       }
 
-      return await fetchTasksWithToken(token);
+      var url = Uri.parse('$API_URL/task');
+      var response = await http.get(
+        url,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+
+        final List<Task> tasks = [];
+        for (var t in jsonResponse) {
+          try {
+            if (t['status'] != 'ACTIVE') continue; // Filtrar tareas inactivas
+            tasks.add(Task.fromJson(t));
+          } catch (e) {
+            debugPrint('Error procesando tarea: $e');
+          }
+        }
+
+        return FetchTasksDto(
+          tasks: tasks,
+          isSuccess: true,
+        );
+      } else {
+        return FetchTasksDto(
+          tasks: [],
+          isSuccess: false,
+          errorMessage: 'Error al obtener tareas: ${response.statusCode}',
+        );
+      }
     } catch (e) {
-      debugPrint('Error en contexto de fetchTasks: $e');
+      debugPrint('Error en fetchTasks: $e');
       return FetchTasksDto(
         tasks: [],
         isSuccess: false,

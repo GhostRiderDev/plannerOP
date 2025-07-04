@@ -6,7 +6,7 @@ import 'package:plannerop/utils/operations.dart';
 import 'package:plannerop/utils/toast.dart';
 import 'package:plannerop/widgets/operations/components/OperationCard.dart';
 import 'package:plannerop/widgets/operations/components/utils.dart';
-import 'package:plannerop/widgets/operations/update/editOperationForm.dart';
+import 'package:plannerop/widgets/operations/edit/editOperationForm.dart';
 import 'package:provider/provider.dart';
 import 'package:plannerop/store/operations.dart';
 import 'package:plannerop/widgets/operations/components/utils/emptyState.dart';
@@ -60,7 +60,7 @@ class _PendingOperationsViewState extends State<PendingOperationsView> {
           );
         }
 
-        final pendingAssignments = assignmentsProvider.pendingAssignments;
+        final pendingAssignments = assignmentsProvider.pendingOperations;
 
         // Aplicar filtros
         var filteredAssignments = pendingAssignments.where((assignment) {
@@ -330,17 +330,17 @@ class _PendingOperationsViewState extends State<PendingOperationsView> {
                         });
 
                         try {
-                          debugPrint('Iniciando operación ${assignment.id}');
-
                           // Actualizar el estado de la operación a "INPROGRESS"
-                          await provider.updateAssignmentStatus(
-                              assignment.id ?? 0, 'INPROGRESS', context);
+                          await provider.updateOperation(
+                              id: assignment.id ?? 0,
+                              status: "INPROGRESS",
+                              context: context);
 
                           // Cerrar el diálogo
                           Navigator.pop(dialogContext);
 
                           // Mostrar mensaje de éxito
-                          showSuccessToast(context, "Asignación iniciada");
+                          showSuccessToast(context, "Operación iniciada");
                         } catch (e) {
                           // En caso de error, volver a habilitar el botón
                           if (context.mounted) {

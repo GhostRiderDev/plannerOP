@@ -61,7 +61,6 @@ class ProgrammingSelectionModal extends StatelessWidget {
               ],
             ),
           ),
-// TODO COLOCAR PROGRAMACION DEL CLIENTE
           // Lista de programaciones
           Expanded(
             child: ListView(
@@ -117,30 +116,6 @@ class ProgrammingSelectionModal extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildStatusLegend(String text, Color color) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: 12,
-            color: const Color(0xFF718096),
-          ),
-        ),
-      ],
     );
   }
 
@@ -207,7 +182,30 @@ class ProgrammingSelectionModal extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              // ✅ AGREGAR INFORMACIÓN DEL CLIENTE
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Icon(
+                    Icons.business,
+                    size: 12,
+                    color: Colors.grey.shade600,
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      programming.client,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
               Row(
                 children: [
                   Icon(

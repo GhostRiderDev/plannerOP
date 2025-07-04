@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:plannerop/core/model/incapacity.dart';
 import 'package:plannerop/core/model/worker.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
-import 'package:plannerop/store/workers.dart';
+import 'package:plannerop/store/faults.dart';
+import 'package:plannerop/store/incapacities.dart';
 import 'package:provider/provider.dart';
 import 'package:plannerop/utils/toast.dart';
 
@@ -25,13 +27,22 @@ class WorkerDetailsSection extends StatefulWidget {
 
 class _WorkerDetailsSectionState extends State<WorkerDetailsSection> {
   // Variable local para mantener el número actual de faltas
+
+  // Variables para la información de incapacidad
   late int currentFailures;
+  Incapacity? currentIncapacity;
+  bool isLoadingIncapacity = false;
 
   @override
   void initState() {
     super.initState();
     // Inicializar con el valor del worker
     currentFailures = widget.worker.failures;
+
+    // Cargar información de incapacidad si el trabajador está incapacitado
+    if (widget.worker.status == WorkerStatus.incapacitated) {
+      _loadCurrentIncapacity();
+    }
   }
 
   @override
@@ -40,6 +51,49 @@ class _WorkerDetailsSectionState extends State<WorkerDetailsSection> {
     // Actualizar si el worker cambió
     if (widget.worker.failures != currentFailures) {
       currentFailures = widget.worker.failures;
+    }
+
+    // Recargar incapacidad si el estado cambió
+    if (oldWidget.worker.status != widget.worker.status &&
+        widget.worker.status == WorkerStatus.incapacitated) {
+      _loadCurrentIncapacity();
+    }
+  }
+
+  // Método para cargar la incapacidad actual
+  Future<void> _loadCurrentIncapacity() async {
+    if (widget.worker.incapacityStartDate == null ||
+        widget.worker.incapacityEndDate == null) {
+      return;
+    }
+
+    setState(() {
+      isLoadingIncapacity = true;
+    });
+
+    try {
+      final incapacityProvider =
+          Provider.of<IncapacityProvider>(context, listen: false);
+      final incapacity = await incapacityProvider.getCurrentIncapacityForWorker(
+        widget.worker.id,
+        widget.worker.incapacityStartDate,
+        widget.worker.incapacityEndDate,
+        context,
+      );
+
+      if (mounted) {
+        setState(() {
+          currentIncapacity = incapacity;
+          isLoadingIncapacity = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          isLoadingIncapacity = false;
+        });
+      }
+      debugPrint('Error cargando incapacidad: $e');
     }
   }
 
@@ -472,15 +526,16 @@ class _WorkerDetailsSectionState extends State<WorkerDetailsSection> {
                                   });
 
                                   try {
-                                    final workersProvider =
-                                        Provider.of<WorkersProvider>(context,
+                                    final FaultsProvider faultsProvider =
+                                        Provider.of<FaultsProvider>(
+                                            dialogContext,
                                             listen: false);
                                     bool success = false;
 
                                     // Llamar al método adecuado según el tipo de incidente
                                     switch (incidentType) {
                                       case 'abandono':
-                                        success = await workersProvider
+                                        success = await faultsProvider
                                             .registerAbandonment(
                                           worker,
                                           dialogContext, // Usa dialogContext en lugar de context
@@ -488,7 +543,7 @@ class _WorkerDetailsSectionState extends State<WorkerDetailsSection> {
                                         );
                                         break;
                                       case 'falta_respeto':
-                                        success = await workersProvider
+                                        success = await faultsProvider
                                             .registerDisrespect(
                                           worker,
                                           dialogContext, // Usa dialogContext en lugar de context
@@ -497,14 +552,14 @@ class _WorkerDetailsSectionState extends State<WorkerDetailsSection> {
                                         break;
                                       case 'falta':
                                         success =
-                                            await workersProvider.registerFault(
+                                            await faultsProvider.registerFault(
                                           worker,
                                           dialogContext, // Usa dialogContext en lugar de context
                                           description: localDescription,
                                         );
                                       default:
                                         success =
-                                            await workersProvider.registerFault(
+                                            await faultsProvider.registerFault(
                                           worker,
                                           dialogContext, // Usa dialogContext en lugar de context
                                           description: localDescription,
@@ -705,7 +760,7 @@ class _WorkerDetailsSectionState extends State<WorkerDetailsSection> {
     // Configurar según el estado
     switch (widget.worker.status) {
       case WorkerStatus.assigned:
-        title = 'Información de Asignación';
+        title = 'Información de Operación';
         icon = Icons.assignment_turned_in;
         color = Colors.amber[700]!;
         if (widget.worker.endDate != null) {
@@ -746,6 +801,29 @@ class _WorkerDetailsSectionState extends State<WorkerDetailsSection> {
           rows.add(
               _buildInfoRow(Icons.hourglass_bottom, 'Estado', daysLeftText));
         }
+
+        // Agregar información de tipo y causa si está disponible
+        if (isLoadingIncapacity) {
+          rows.add(_buildLoadingRow());
+        } else if (currentIncapacity != null) {
+          final incapacityProvider =
+              Provider.of<IncapacityProvider>(context, listen: false);
+
+          rows.add(_buildInfoRow(
+              Icons.category_outlined,
+              'Tipo',
+              incapacityProvider
+                  .mapTypeToDisplayString(currentIncapacity!.type)));
+
+          rows.add(_buildInfoRow(
+              Icons.healing_outlined,
+              'Causa',
+              incapacityProvider
+                  .mapCauseToDisplayString(currentIncapacity!.cause)));
+        } else {
+          // Si no se pudo cargar la información, mostrar opción para recargar
+          rows.add(_buildRetryRow());
+        }
         break;
 
       case WorkerStatus.deactivated:
@@ -776,6 +854,78 @@ class _WorkerDetailsSectionState extends State<WorkerDetailsSection> {
       icon: icon,
       color: color,
       content: rows,
+    );
+  }
+
+  // Widget para mostrar loading
+  Widget _buildLoadingRow() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, size: 16, color: Colors.grey[600]),
+          const SizedBox(width: 8),
+          Text(
+            'Cargando detalles...',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[700],
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.purple),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Widget para mostrar opción de reintentar
+  Widget _buildRetryRow() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        children: [
+          Icon(Icons.refresh, size: 16, color: Colors.grey[600]),
+          const SizedBox(width: 8),
+          Text(
+            'No se pudieron cargar los detalles',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[700],
+            ),
+          ),
+          const SizedBox(width: 8),
+          InkWell(
+            onTap: _loadCurrentIncapacity,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.purple.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: Colors.purple.withOpacity(0.3)),
+              ),
+              child: Text(
+                'Reintentar',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.purple,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

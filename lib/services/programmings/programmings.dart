@@ -64,7 +64,7 @@ class ProgrammingsService {
         return [];
       }
       final response = await http.get(
-        Uri.parse('$API_URL/client-programming?date=$date'),
+        Uri.parse('$API_URL/client-programming/filtered?dateStart=$date'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -92,7 +92,7 @@ class ProgrammingsService {
     }
   }
 
-  /// NUEVO MÉTODO: Obtener una programación específica por ID
+  /// Obtener una programación específica por ID
   Future<Programming?> getProgrammingById(
       int programmingId, BuildContext context) async {
     try {

@@ -15,8 +15,17 @@ class WorkerService {
   final String API_URL = dotenv.get('API_URL');
 
   // Versión que acepta un token directamente, sin depender del contexto
-  Future<FetchWorkersDto> fetchWorkersWithToken(String token) async {
+  Future<FetchWorkersDto> fetchWorkers(BuildContext context) async {
     try {
+      // Obtiene el token de acceso del provider de autenticación
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final String token = authProvider.accessToken;
+
+      if (token.isEmpty) {
+        debugPrint('No hay token disponible');
+        return FetchWorkersDto(workers: [], isSuccess: false);
+      }
+
       var url = Uri.parse('$API_URL/worker');
       var response =
           await http.get(url, headers: {'Authorization': 'Bearer $token'});
@@ -110,217 +119,7 @@ class WorkerService {
     }
   }
 
-  // Mantener la función original que usa contexto para retrocompatibilidad
-  Future<FetchWorkersDto> fetchWorkers(BuildContext context) async {
-    try {
-      // Obtiene el token de acceso del provider de autenticación
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final String token = authProvider.accessToken;
-
-      if (token.isEmpty) {
-        debugPrint('No hay token disponible');
-        return FetchWorkersDto(workers: [], isSuccess: false);
-      }
-
-      return await fetchWorkersWithToken(token);
-    } catch (e) {
-      debugPrint('Error en contexto de fetchWorkers: $e');
-      return FetchWorkersDto(workers: [], isSuccess: false);
-    }
-  }
-
-  // Mantener el método original y añadir soporte para descripción
-  Future<bool> registerFault(Worker worker, BuildContext context,
-      {String? description}) async {
-    try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final String token = authProvider.accessToken;
-
-      if (token.isEmpty) {
-        debugPrint('No hay token disponible');
-        return false;
-      }
-
-      // Primero actualiza el contador de faltas en el worker
-      var workerUrl = Uri.parse('$API_URL/worker/${worker.id}');
-      var workerResponse = await http.patch(
-        workerUrl,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json'
-        },
-        body: jsonEncode({
-          'failures': worker.failures + 1,
-        }),
-      );
-
-      // debugPrint(
-      //     'Worker API Response: ${workerResponse.statusCode} - ${workerResponse.body}');
-
-      if (!(workerResponse.statusCode >= 200 &&
-          workerResponse.statusCode < 300)) {
-        return false;
-      }
-
-      // Si se proporcionó una descripción, registrar también la falta como incidente
-      if (description != null && description.isNotEmpty) {
-        var faultUrl = Uri.parse('$API_URL/called-attention');
-        var faultResponse = await http.post(
-          faultUrl,
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Content-Type': 'application/json'
-          },
-          body: jsonEncode({
-            'description': description,
-            'type': 'INASSISTANCE',
-            'id_worker': worker.id,
-          }),
-        );
-
-        // debugPrint(
-        //     'Fault API Response: ${faultResponse.statusCode} - ${faultResponse.body}');
-
-        if (!(faultResponse.statusCode >= 200 &&
-            faultResponse.statusCode < 300)) {
-          debugPrint(
-              'La falta se registró pero hubo un error al guardar el incidente');
-        }
-      }
-
-      return true;
-    } catch (e) {
-      debugPrint('Error en registerFault: $e');
-      return false;
-    }
-  }
-
-  // Nuevo método para registrar abandono de trabajo
-  Future<bool> registerAbandonment(Worker worker, BuildContext context,
-      {String? description}) async {
-    try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final String token = authProvider.accessToken;
-
-      if (token.isEmpty) {
-        debugPrint('No hay token disponible');
-        return false;
-      }
-
-      // Primero actualiza el contador de faltas en el worker
-      var workerUrl = Uri.parse('$API_URL/worker/${worker.id}');
-      var workerResponse = await http.patch(
-        workerUrl,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json'
-        },
-        body: jsonEncode({
-          'failures': worker.failures + 1,
-        }),
-      );
-
-      // debugPrint(
-      //     'Worker API Response: ${workerResponse.statusCode} - ${workerResponse.body}');
-
-      if (!(workerResponse.statusCode >= 200 &&
-          workerResponse.statusCode < 300)) {
-        return false;
-      }
-
-      if (description == null || description.isEmpty) {
-        debugPrint('Se requiere una descripción para registrar abandono');
-        return false;
-      }
-
-      var faultUrl = Uri.parse('$API_URL/called-attention');
-      var response = await http.post(
-        faultUrl,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json'
-        },
-        body: jsonEncode({
-          'description': description,
-          'type': 'ABANDONMENT',
-          'id_worker': worker.id,
-        }),
-      );
-
-      // debugPrint(
-      //     'Abandonment API Response: ${response.statusCode} - ${response.body}');
-
-      return response.statusCode >= 200 && response.statusCode < 300;
-    } catch (e) {
-      debugPrint('Error en registerAbandonment: $e');
-      return false;
-    }
-  }
-
-  // Nuevo método para registrar falta de respeto
-  Future<bool> registerDisrespect(Worker worker, BuildContext context,
-      {String? description}) async {
-    try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final String token = authProvider.accessToken;
-
-      if (token.isEmpty) {
-        debugPrint('No hay token disponible');
-        return false;
-      }
-
-      // Primero actualiza el contador de faltas en el worker
-      var workerUrl = Uri.parse('$API_URL/worker/${worker.id}');
-      var workerResponse = await http.patch(
-        workerUrl,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json'
-        },
-        body: jsonEncode({
-          'failures': worker.failures + 1,
-        }),
-      );
-
-      // debugPrint(
-      //     'Worker API Response: ${workerResponse.statusCode} - ${workerResponse.body}');
-
-      if (!(workerResponse.statusCode >= 200 &&
-          workerResponse.statusCode < 300)) {
-        return false;
-      }
-
-      if (description == null || description.isEmpty) {
-        debugPrint(
-            'Se requiere una descripción para registrar falta de respeto');
-        return false;
-      }
-
-      var faultUrl = Uri.parse('$API_URL/called-attention');
-      var response = await http.post(
-        faultUrl,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json'
-        },
-        body: jsonEncode({
-          'description': description,
-          'type': 'IRRESPECTFUL',
-          'id_worker': worker.id,
-        }),
-      );
-
-      // debugPrint(
-      //     'Disrespect API Response: ${response.statusCode} - ${response.body}');
-
-      return response.statusCode >= 200 && response.statusCode < 300;
-    } catch (e) {
-      debugPrint('Error en registerDisrespect: $e');
-      return false;
-    }
-  }
-
-  // Modificar el método registerWorker en WorkerService
+  // Método para registrar un nuevo trabajador
   Future<Map<String, dynamic>> registerWorker(
       Worker worker, BuildContext context) async {
     try {
@@ -350,9 +149,6 @@ class WorkerService {
             'id_user': user.id,
             'code': worker.code,
           }));
-
-      // debugPrint('Lo que envio: ${response.request}');
-      // debugPrint('Respuesta API: ${response.statusCode} - ${response.body}');
 
       if (response.statusCode == 201) {
         return {
@@ -485,8 +281,15 @@ class WorkerService {
         'phone': worker.phone,
         'status': statusToAPI[worker.status] ?? 'AVALIABLE',
         'code': worker.code,
-        'id_area': worker.idArea,
       };
+
+      if (worker.idArea != null && worker.idArea != 0) {
+        body['id_area'] = worker.idArea;
+      }
+
+      if (worker.failures != null) {
+        body['failures'] = worker.failures;
+      }
 
       // Añadir fechas específicas según el estado
       if (worker.status == WorkerStatus.incapacitated) {

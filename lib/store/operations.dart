@@ -12,27 +12,28 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class OperationsProvider extends ChangeNotifier {
-  final AssignmentService _assignmentService = AssignmentService();
-  List<Operation> _assignments = [];
+  final OperationService _operationService = OperationService();
+  List<Operation> _operations = [];
   bool _isLoading = false;
   String? _error;
   Timer? _refreshTimer;
   final Duration _refreshInterval = const Duration(seconds: 30);
 
-  List<Operation> get assignments => _assignments;
+  List<Operation> get operations => _operations;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  BuildContext? _lastContext;
 
-  List<Operation> get pendingAssignments =>
-      _assignments.where((a) => a.status == 'PENDING').toList();
+  List<Operation> get pendingOperations =>
+      _operations.where((a) => a.status == 'PENDING').toList();
 
-  List<Operation> get inProgressAssignments =>
-      _assignments.where((a) => a.status == 'INPROGRESS').toList();
+  List<Operation> get inProgressOperations =>
+      _operations.where((a) => a.status == 'INPROGRESS').toList();
 
-  List<Operation> get completedAssignments =>
-      _assignments.where((a) => a.status == 'COMPLETED').toList();
+  List<Operation> get completedOperations =>
+      _operations.where((a) => a.status == 'COMPLETED').toList();
 
-  AssignmentsProvider() {
+  OperationsProvider() {
     _startRefreshTimer();
   }
 
@@ -41,8 +42,15 @@ class OperationsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Actualizar el método completeGroupOrIndividual para incluir fecha y hora de inicio
-  Future<bool> completeGroupOrIndividual(
+  // No olvidar añadir dispose para limpiar el temporizador
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  // Actualizar el método completeGroup para incluir fecha y hora de inicio
+  Future<bool> completeGroup(
     Operation assignment,
     List<Worker> workers,
     String groupId,
@@ -105,7 +113,7 @@ class OperationsProvider extends ChangeNotifier {
           ? [int.parse(groupId.split("_")[1])]
           : workerIds;
 
-      // NUEVA LÓGICA: Verificar si este es el último grupo
+      // Verificar si este es el último grupo
       bool isLastGroup = false;
       if (groupId != "individual" && !groupId.startsWith("worker_")) {
         // Contar cuántos grupos quedarían después de completar este
@@ -119,12 +127,12 @@ class OperationsProvider extends ChangeNotifier {
         debugPrint('Es el último grupo, completando toda la operación');
         hasCompleted = true;
         timeoutTimer.cancel();
-        return await completeAssignment(
+        return await completeOperation(
             assignment.id ?? 0, endDate, endTime, context);
       }
 
       // Si no, enviar petición para completar sólo este grupo/trabajador
-      final success = await _assignmentService.completePartialAssignment(
+      final success = await _operationService.completeGroupOperation(
         assignment.id ?? 0,
         workerIdsToSend,
         groupId,
@@ -137,41 +145,16 @@ class OperationsProvider extends ChangeNotifier {
 
       if (success) {
         // Actualizar en la lista local - quitar estos trabajadores o grupos
-        final index = _assignments.indexWhere((a) => a.id == assignment.id);
+        final index = _operations.indexWhere((a) => a.id == assignment.id);
 
         if (index >= 0) {
-          // Obtener conjunto de IDs de los trabajadores completados
-          final completedWorkerIds = workers.map((w) => w.id).toSet();
-
           // Si es un grupo, eliminarlo de la lista de grupos
-          if (groupId != "individual" && !groupId.startsWith("worker_")) {
-            // Crear una nueva lista de grupos sin el grupo completado
-            final updatedGroups = _assignments[index]
-                .groups
-                .where((g) => g.id != groupId)
-                .toList();
+          // Crear una nueva lista de grupos sin el grupo completado
+          final updatedGroups =
+              _operations[index].groups.where((g) => g.id != groupId).toList();
 
-            // Actualizar la operación con los grupos actualizados
-            _assignments[index] = Operation(
-                id: assignment.id,
-                area: assignment.area,
-                date: assignment.date,
-                time: assignment.time,
-                supervisor: assignment.supervisor,
-                status: assignment.status,
-                endDate: assignment.endDate,
-                endTime: assignment.endTime,
-                zone: assignment.zone,
-                motorship: assignment.motorship,
-                userId: assignment.userId,
-                areaId: assignment.areaId,
-                clientId: assignment.clientId,
-                inChagers: assignment.inChagers,
-                groups: updatedGroups, // Actualizar con la lista filtrada
-                id_clientProgramming: assignment.id_clientProgramming);
-          } else {
-            // Si no es un grupo, solo actualizar la lista de trabajadores
-            _assignments[index] = Operation(
+          // Actualizar la operación con los grupos actualizados
+          _operations[index] = Operation(
               id: assignment.id,
               area: assignment.area,
               date: assignment.date,
@@ -186,10 +169,8 @@ class OperationsProvider extends ChangeNotifier {
               areaId: assignment.areaId,
               clientId: assignment.clientId,
               inChagers: assignment.inChagers,
-              groups: assignment.groups,
-              id_clientProgramming: assignment.id_clientProgramming,
-            );
-          }
+              groups: updatedGroups, // Actualizar con la lista filtrada
+              id_clientProgramming: assignment.id_clientProgramming);
         }
         notifyListeners();
       }
@@ -211,31 +192,26 @@ class OperationsProvider extends ChangeNotifier {
   }
 
   void _startRefreshTimer() {
-    // debugPrint('Iniciando temporizador de refresco...');
     _refreshTimer?.cancel();
     _refreshTimer = Timer.periodic(_refreshInterval, (timer) {
       if (_lastContext != null) {
-        refreshActiveAssignments(_lastContext!);
+        refreshActiveOperations(_lastContext!);
       }
     });
   }
 
-  BuildContext? _lastContext;
-
-  // Método para refrescar solo asignaciones activas
-  Future<void> refreshActiveAssignments(BuildContext context) async {
+  // Método para refrescar solo operaciones activas
+  Future<void> refreshActiveOperations(BuildContext context) async {
     _lastContext = context;
-
-    // debugPrint('Refrescando asignaciones activas...');
 
     try {
       // Refrescar solo asignaciones activas y pendientes
-      final updatedAssignments = await _assignmentService
-          .fetchAssignmentsByStatus(context, ['INPROGRESS', 'PENDING']);
+      final updatedOperations = await _operationService
+          .fetchOperationsByStatus(context, ['INPROGRESS', 'PENDING']);
 
-      if (updatedAssignments.isNotEmpty) {
+      if (updatedOperations.isNotEmpty) {
         // Actualizar lista existente
-        _updateAssignmentsList(updatedAssignments);
+        _updateAssignmentsList(updatedOperations);
         notifyListeners();
       }
     } catch (e) {
@@ -244,43 +220,36 @@ class OperationsProvider extends ChangeNotifier {
     }
   }
 
-// No olvidar añadir dispose para limpiar el temporizador
-  @override
-  void dispose() {
-    _refreshTimer?.cancel();
-    super.dispose();
-  }
-
-  Future<bool> completeAssignment(
+  Future<bool> completeOperation(
       int id, DateTime endDate, String endTime, BuildContext context) async {
     // debugPrint('Completando operación...');
     try {
-      final success = await _assignmentService.completeAssigment(
+      final success = await _operationService.completeOperation(
           id, 'COMPLETED', endDate, endTime, context);
 
       if (success) {
-        final index = _assignments.indexWhere((a) => a.id == id);
+        final index = _operations.indexWhere((a) => a.id == id);
         if (index >= 0) {
-          final currentAssignment = _assignments[index];
-          _assignments[index] = Operation(
-            id: currentAssignment.id,
-            // workers: currentAssignment.workers,
-            area: currentAssignment.area,
-            // task: currentAssignment.task,
-            date: currentAssignment.date,
-            time: currentAssignment.time,
-            zone: currentAssignment.zone,
+          final currentOperation = _operations[index];
+          _operations[index] = Operation(
+            id: currentOperation.id,
+            // workers: currentOperation.workers,
+            area: currentOperation.area,
+            // task: currentOperation.task,
+            date: currentOperation.date,
+            time: currentOperation.time,
+            zone: currentOperation.zone,
             status: 'COMPLETED',
-            endDate: currentAssignment.endDate ?? endDate,
-            endTime: currentAssignment.endTime ?? endTime,
-            motorship: currentAssignment.motorship,
-            userId: currentAssignment.userId,
-            areaId: currentAssignment.areaId,
-            // taskId: currentAssignment.taskId,
-            clientId: currentAssignment.clientId,
-            inChagers: currentAssignment.inChagers,
-            groups: currentAssignment.groups,
-            id_clientProgramming: currentAssignment.id_clientProgramming,
+            endDate: currentOperation.endDate ?? endDate,
+            endTime: currentOperation.endTime ?? endTime,
+            motorship: currentOperation.motorship,
+            userId: currentOperation.userId,
+            areaId: currentOperation.areaId,
+            // taskId: currentOperation.taskId,
+            clientId: currentOperation.clientId,
+            inChagers: currentOperation.inChagers,
+            groups: currentOperation.groups,
+            id_clientProgramming: currentOperation.id_clientProgramming,
           );
           notifyListeners();
         }
@@ -293,45 +262,45 @@ class OperationsProvider extends ChangeNotifier {
     }
   }
 
-// Añadir este método al provider de asignaciones
-  Future<bool> removeGroupFromAssignment(
-      List<int> workerIds, BuildContext context, int assigmentId) async {
+// Método para eliminar un grupo de una asignación
+  Future<bool> removeGroupFromOperation(Map<String, List<int>> workersGroups,
+      BuildContext context, int assigmentId) async {
     try {
       // Llamar al servicio para eliminar el grupo en el backend
-      final success = await _assignmentService.removeGroupFromAssignment(
-          assigmentId, context, workerIds);
+      final success = await _operationService.removeGroupFromOperation(
+          assigmentId, context, workersGroups);
 
       if (success) {
         // Si fue exitoso, actualizar la operación local
-        final index = _assignments.indexWhere((a) => a.id == assigmentId);
+        final index = _operations.indexWhere((a) => a.id == assigmentId);
         if (index >= 0) {
           // Crear una copia actualizada de la operación sin el grupo
-          final updatedGroups = _assignments[index]
+          final updatedGroups = _operations[index]
               .groups
-              .where((g) => !workerIds.contains(g.id))
+              .where((g) => !workersGroups.containsKey(g.id))
               .toList();
 
           // Actualizar la operación
-          _assignments[index] = Operation(
-            id: _assignments[index].id,
-            // workers: _assignments[index].workers,
-            area: _assignments[index].area,
-            // task: _assignments[index].task,
-            date: _assignments[index].date,
-            time: _assignments[index].time,
-            zone: _assignments[index].zone,
-            status: _assignments[index].status,
-            endDate: _assignments[index].endDate,
-            endTime: _assignments[index].endTime,
-            motorship: _assignments[index].motorship,
-            userId: _assignments[index].userId,
-            areaId: _assignments[index].areaId,
-            // taskId: _assignments[index].taskId,
-            clientId: _assignments[index].clientId,
-            inChagers: _assignments[index].inChagers,
+          _operations[index] = Operation(
+            id: _operations[index].id,
+            // workers: _operations[index].workers,
+            area: _operations[index].area,
+            // task: _operations[index].task,
+            date: _operations[index].date,
+            time: _operations[index].time,
+            zone: _operations[index].zone,
+            status: _operations[index].status,
+            endDate: _operations[index].endDate,
+            endTime: _operations[index].endTime,
+            motorship: _operations[index].motorship,
+            userId: _operations[index].userId,
+            areaId: _operations[index].areaId,
+            // taskId: _operations[index].taskId,
+            clientId: _operations[index].clientId,
+            inChagers: _operations[index].inChagers,
             groups: updatedGroups,
-            deletedWorkers: _assignments[index].deletedWorkers,
-            id_clientProgramming: _assignments[index].id_clientProgramming,
+            deletedWorkers: _operations[index].deletedWorkers,
+            id_clientProgramming: _operations[index].id_clientProgramming,
           );
 
           notifyListeners();
@@ -349,37 +318,11 @@ class OperationsProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> loadAssignments(BuildContext context) async {
-    // debugPrint('Cargando asignaciones...');
-    _isLoading = true;
-    _error = null; // Resetear error previo
-    notifyListeners();
-
-    try {
-      // debugPrint('Intentando cargar asignaciones desde API...');
-      final assignments = await _assignmentService.fetchAssignments(context);
-
-      // Limpiar lista existente
-      _assignments.clear();
-
-      // Añadir nuevas asignaciones
-      _assignments.addAll(assignments);
-    } catch (e, stackTrace) {
-      debugPrint('Error al cargar asignaciones: $e');
-      debugPrint('Stack trace: $stackTrace');
-      _error = 'Error al cargar asignaciones: $e';
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
   Future<void> _saveAssignments() async {
-    // debugPrint('Guardando asignaciones...');
     try {
       final prefs = await SharedPreferences.getInstance();
       final assignmentsJson = json.encode(
-          _assignments.map((assignment) => assignment.toJson()).toList());
+          _operations.map((assignment) => assignment.toJson()).toList());
       await prefs.setString('assignments', assignmentsJson);
     } catch (e) {
       debugPrint('Error saving assignments: $e');
@@ -398,7 +341,7 @@ class OperationsProvider extends ChangeNotifier {
       notifyListeners();
 
       // Llamar al servicio para conectar los trabajadores en el backend
-      final success = await _assignmentService.connectWorkersToAssignment(
+      final success = await _operationService.connectWorkersToOperation(
           assignmentId, individualWorkerIds, groupsToConnect, context);
 
       _isLoading = false;
@@ -457,22 +400,25 @@ class OperationsProvider extends ChangeNotifier {
       CreateOperationDto response = CreateOperationDto(id: 0, isSuccess: false);
       if (context != null) {
         response =
-            await _assignmentService.createAssignment(newAssignment, context);
+            await _operationService.createOperation(newAssignment, context);
         newAssignment.id = response.id;
       }
 
       if (response.isSuccess) {
-        // NUEVO: Refrescar la operación para obtener los IDs reales de los grupos
+        //  Refrescar la operación para obtener los IDs reales de los grupos
         if (context != null && response.id > 0) {
           await _refreshCreatedOperation(response.id, context);
         } else {
           // Si no se puede refrescar, agregar la operación con IDs temporales
-          _assignments.add(newAssignment);
+          _operations.add(newAssignment);
         }
 
-        // NUEVO: Actualizar estado de la programación si existe
+        //  Actualizar estado de la programación si existe
         if (id_clientProgramming != null && context != null) {
-          await _updateProgrammingStatus(
+          ProgrammingsProvider programmingProvider =
+              Provider.of<ProgrammingsProvider>(context, listen: false);
+
+          await programmingProvider.updateProgrammingStatus(
               id_clientProgramming, 'ASSIGNED', context);
         }
 
@@ -504,8 +450,8 @@ class OperationsProvider extends ChangeNotifier {
       debugPrint('Refrescando operación creada con ID: $operationId');
 
       // Obtener la operación específica del backend
-      final refreshedOperations = await _assignmentService
-          .fetchAssignmentsByStatus(context, ['PENDING', 'INPROGRESS']);
+      final refreshedOperations = await _operationService
+          .fetchOperationsByStatus(context, ['PENDING', 'INPROGRESS']);
 
       // Buscar la operación específica en la respuesta usando where (más seguro)
       final matchingOperations =
@@ -518,7 +464,7 @@ class OperationsProvider extends ChangeNotifier {
             'Operación refrescada exitosamente con ${refreshedOperation.groups.length} grupos');
 
         // Agregar la operación refrescada con los IDs reales
-        _assignments.add(refreshedOperation);
+        _operations.add(refreshedOperation);
 
         // Imprimir los IDs reales de los grupos para debug
         for (var group in refreshedOperation.groups) {
@@ -537,154 +483,54 @@ class OperationsProvider extends ChangeNotifier {
     }
   }
 
-// NUEVO MÉTODO: Actualizar estado de programación
-  Future<void> _updateProgrammingStatus(
-      int programmingId, String newStatus, BuildContext context) async {
-    try {
-      debugPrint(
-          'Actualizando programación $programmingId a estado $newStatus');
-
-      final programmingsProvider =
-          Provider.of<ProgrammingsProvider>(context, listen: false);
-      final success = await programmingsProvider.updateProgrammingStatus(
-          programmingId, newStatus, context);
-
-      if (success) {
-        debugPrint(
-            'Programación $programmingId actualizada exitosamente a $newStatus');
-      } else {
-        debugPrint('Error al actualizar programación $programmingId');
-      }
-    } catch (e) {
-      debugPrint('Error al actualizar estado de programación: $e');
-    }
-  }
-
-  Future<void> updateAssignmentStatus(
-      int id, String status, BuildContext context) async {
-    // debugPrint('Actualizando estado de la operación...');
-    final index = _assignments.indexWhere((a) => a.id == id);
-    if (index >= 0) {
-      final currentAssignment = _assignments[index];
-      _assignments[index] = Operation(
-        id: currentAssignment.id,
-        // workers: currentAssignment.workers,
-        area: currentAssignment.area,
-        // task: currentAssignment.task,
-        date: currentAssignment.date,
-        time: currentAssignment.time,
-        zone: currentAssignment.zone,
-        status: status,
-        endDate: currentAssignment.endDate,
-        endTime: currentAssignment.endTime,
-        motorship: currentAssignment.motorship,
-        userId: currentAssignment.userId,
-        areaId: currentAssignment.areaId,
-        // taskId: currentAssignment.taskId,
-        clientId: currentAssignment.clientId,
-        inChagers: currentAssignment.inChagers,
-        groups: currentAssignment.groups,
-        id_clientProgramming: currentAssignment.id_clientProgramming,
-      );
-
-      // debugPrint('Actualizando estado de la operación en el backend...');
-
-      await _assignmentService.updateStatusAssignment(id, status, context);
-
-      await _saveAssignments();
-      notifyListeners();
-    }
-  }
-
-  Future<void> updateAssignmentEndTime(int id, String endTime) async {
-    // debugPrint('Actualizando hora de finalización de la operación...');
-    final index = _assignments.indexWhere((a) => a.id == id);
-    if (index >= 0) {
-      final currentAssignment = _assignments[index];
-      _assignments[index] = Operation(
-        id: currentAssignment.id,
-        // workers: currentAssignment.workers,
-        area: currentAssignment.area,
-        // task: currentAssignment.task,
-        date: currentAssignment.date,
-        time: currentAssignment.time,
-        zone: currentAssignment.zone,
-        status: currentAssignment.status,
-        endDate: currentAssignment.endDate,
-        endTime: endTime,
-        motorship: currentAssignment.motorship,
-        userId: currentAssignment.userId,
-        areaId: currentAssignment.areaId,
-        // taskId: currentAssignment.taskId,
-        clientId: currentAssignment.clientId,
-        inChagers: currentAssignment.inChagers,
-        id_clientProgramming: currentAssignment.id_clientProgramming,
-        groups: currentAssignment.groups,
-      );
-      await _saveAssignments();
-      notifyListeners();
-    }
-  }
-
-  Future<void> deleteAssignment(String id) async {
-    _assignments.removeWhere((a) => a.id == id);
-    await _saveAssignments();
-    notifyListeners();
-  }
-
-  Operation? getAssignmentById(String id) {
-    // debugPrint('Obteniendo operación por ID...');
-    try {
-      return _assignments.firstWhere(
-        (a) => a.id == id,
-        orElse: () => Operation(
-            // workers: [],
-            area: "",
-            // task: "",
-            date: DateTime.now(),
-            time: "",
-            zone: 0,
-            userId: 0,
-            areaId: 0,
-            // taskId: 0,
-            clientId: 0,
-            inChagers: [],
-            id_clientProgramming: 0),
-      );
-    } catch (e) {
-      return null;
-    }
-  }
-
-  // Añadir este nuevo método al AssignmentsProvider
-  Future<bool> updateAssignment(
-      Operation updatedAssignment, BuildContext context) async {
-    debugPrint('Actualizando operación2...');
+  Future<bool> updateOperation({
+    required int id,
+    String? status,
+    DateTime? endDate,
+    String? endTime,
+    BuildContext? context,
+  }) async {
     try {
       _isLoading = true;
       _error = null;
       notifyListeners();
 
-      // Actualizar en el backend
-      final success = await _assignmentService.updateAssignmentToComplete(
-          updatedAssignment, context);
+      final index = _operations.indexWhere((a) => a.id == id);
+      if (index < 0) return false;
 
-      if (success) {
-        // Actualizar en la lista local
-        final index =
-            _assignments.indexWhere((a) => a.id == updatedAssignment.id);
-        if (index >= 0) {
-          _assignments[index] = updatedAssignment;
-        }
-      } else {
-        _error = "Error al actualizar la operación en el servidor";
+      final currentAssignment = _operations[index];
+
+      // Actualizar en backend si hay contexto
+      if (context != null && status != null) {
+        final success =
+            await _operationService.updateStatusOperation(id, status, context);
+        if (!success) return false;
       }
 
+      // Actualizar localmente
+      _operations[index] = Operation(
+        id: currentAssignment.id,
+        area: currentAssignment.area,
+        date: currentAssignment.date,
+        time: currentAssignment.time,
+        zone: currentAssignment.zone,
+        status: status ?? currentAssignment.status,
+        endDate: endDate ?? currentAssignment.endDate,
+        endTime: endTime ?? currentAssignment.endTime,
+        motorship: currentAssignment.motorship,
+        userId: currentAssignment.userId,
+        areaId: currentAssignment.areaId,
+        clientId: currentAssignment.clientId,
+        inChagers: currentAssignment.inChagers,
+        groups: currentAssignment.groups,
+        id_clientProgramming: currentAssignment.id_clientProgramming,
+      );
+
+      await _saveAssignments();
       _isLoading = false;
       notifyListeners();
-      return success;
+      return true;
     } catch (e) {
-      debugPrint('Error en updateAssignment: $e');
       _error = 'Error: $e';
       _isLoading = false;
       notifyListeners();
@@ -694,9 +540,7 @@ class OperationsProvider extends ChangeNotifier {
 
 // Añadir a la clase AssignmentsProvider
   Future<void> loadAssignmentsWithPriority(BuildContext context) async {
-    // debugPrint('Cargando asignaciones con prioridad...');
-    // No establecer isLoading = true si ya hay datos para evitar reconstrucciones innecesarias
-    final hasExistingData = _assignments.isNotEmpty;
+    final hasExistingData = _operations.isNotEmpty;
 
     if (!hasExistingData) {
       _isLoading = true;
@@ -705,8 +549,8 @@ class OperationsProvider extends ChangeNotifier {
 
     try {
       // Primera fase: Cargar asignaciones activas y pendientes (alta prioridad)
-      final highPriorityAssignments = await _assignmentService
-          .fetchAssignmentsByStatus(context, ['INPROGRESS', 'PENDING']);
+      final highPriorityAssignments = await _operationService
+          .fetchOperationsByStatus(context, ['INPROGRESS', 'PENDING']);
 
       // Actualizar primero las asignaciones de alta prioridad
       if (highPriorityAssignments.isNotEmpty) {
@@ -738,8 +582,8 @@ class OperationsProvider extends ChangeNotifier {
       BuildContext context) async {
     // debugPrint('Cargando asignaciones completadas en segundo plano...');
     try {
-      final completedAssignments = await _assignmentService
-          .fetchAssignmentsByStatus(context, ['COMPLETED']);
+      final completedAssignments = await _operationService
+          .fetchOperationsByStatus(context, ['COMPLETED']);
 
       if (completedAssignments.isNotEmpty) {
         // Actualizar solo las asignaciones completadas
@@ -756,13 +600,13 @@ class OperationsProvider extends ChangeNotifier {
 // Método para actualizar la lista de asignaciones eficientemente
   void _updateAssignmentsList(List<Operation> newAssignments) {
     for (var newAssignment in newAssignments) {
-      final index = _assignments.indexWhere((a) => a.id == newAssignment.id);
+      final index = _operations.indexWhere((a) => a.id == newAssignment.id);
       if (index >= 0) {
         // Actualizar operación existente
-        _assignments[index] = newAssignment;
+        _operations[index] = newAssignment;
       } else {
         // Añadir nueva operación
-        _assignments.add(newAssignment);
+        _operations.add(newAssignment);
       }
     }
   }

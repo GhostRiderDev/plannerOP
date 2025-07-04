@@ -20,7 +20,7 @@ Future<WorkerHoursResult> calculateWorkerHours(
       Provider.of<OperationsProvider>(context, listen: false);
   final workersProvider = Provider.of<WorkersProvider>(context, listen: false);
 
-  final completedAssignments = assignmentsProvider.completedAssignments
+  final completedAssignments = assignmentsProvider.completedOperations
       .where((assignment) =>
           assignment.date.isAfter(DateTime.now().subtract(Duration(days: 2))))
       .toList();
@@ -39,7 +39,7 @@ Future<WorkerHoursResult> calculateWorkerHours(
     }
 
     if (assignment.endDate != null && assignment.endTime != null) {
-      final double assignmentHours = calculateAssignmentDuration(assignment);
+      // final double assignmentHours = calculateAssignmentDuration(assignment);
 
       // Asignar estas horas a cada trabajador de la operación
       // for (var worker in assignment.workers) {
@@ -47,8 +47,6 @@ Future<WorkerHoursResult> calculateWorkerHours(
       // }
     }
   }
-
-  final Set<int> selectedWorkerIds = selectedWorkers.map((w) => w.id).toSet();
 
   return WorkerHoursResult(hoursMap, availableWorkers);
 }

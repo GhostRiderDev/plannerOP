@@ -38,13 +38,13 @@ String getGroupName(DateTime? startDate, DateTime? endDate, String? startTime,
   } else if (startTime != null && endTime != null) {
     groupName = ' $startTime-$endTime';
   } else if (startDate != null && startTime != null) {
-    groupName = ' ${DateFormat('dd/MM').format(startDate!)} $startTime';
+    groupName = ' ${DateFormat('dd/MM').format(startDate)} $startTime';
   } else if (endDate != null && endTime != null) {
-    groupName = 'Fin: ${DateFormat('dd/MM').format(endDate!)} $endTime';
+    groupName = 'Fin: ${DateFormat('dd/MM').format(endDate)} $endTime';
   } else if (startDate != null) {
-    groupName = 'Inicio: ${DateFormat('dd/MM').format(startDate!)}';
+    groupName = 'Inicio: ${DateFormat('dd/MM').format(startDate)}';
   } else if (endDate != null) {
-    groupName = 'Fin: ${DateFormat('dd/MM').format(endDate!)}';
+    groupName = 'Fin: ${DateFormat('dd/MM').format(endDate)}';
   } else if (startTime != null) {
     groupName = 'Inicio: $startTime';
   } else if (endTime != null) {

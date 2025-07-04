@@ -13,11 +13,11 @@ class Cifras extends StatelessWidget {
       builder: (context, operationsProvider, workersProvider, child) {
         // Calculamos las cifras necesarias
         final int pendingAssignments =
-            operationsProvider.pendingAssignments.length;
+            operationsProvider.pendingOperations.length;
         final int activeAssignments =
-            operationsProvider.inProgressAssignments.length;
+            operationsProvider.inProgressOperations.length;
         final int completedAssignments =
-            operationsProvider.completedAssignments.length;
+            operationsProvider.completedOperations.length;
 
         // Obtenemos el número de trabajadores disponibles directamente del provider
         final int availableWorkers = workersProvider.availableWorkers;

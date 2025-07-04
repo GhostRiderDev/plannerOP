@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:plannerop/core/model/worker.dart';
 import 'workerDetailsSection.dart';
-import 'workerAssignmentsSection.dart';
 import 'workerActionsBar.dart';
 import 'workerEditDialog.dart';
 import 'workerIncapacitationDialog.dart';
@@ -50,13 +49,6 @@ class WorkerDetailDialog extends StatelessWidget {
                     specialtyColor: specialtyColor,
                     workerCode: worker.code,
                   ),
-
-                  // Mostrar asignaciones actuales si está asignado
-                  if (worker.status == WorkerStatus.assigned)
-                    WorkerAssignmentsSection(
-                      worker: worker,
-                      specialtyColor: specialtyColor,
-                    ),
                 ],
               ),
             ),
@@ -247,7 +239,6 @@ class WorkerDetailDialog extends StatelessWidget {
       context: context,
       builder: (context) => WorkerIncapacitationDialog(
         worker: worker,
-        specialtyColor: specialtyColor,
         onIncapacitate: (worker, startDate, endDate) {
           // Esta función se invoca desde dentro del diálogo WorkerIncapacitationDialog
           if (onIncapacitateWorker != null) {

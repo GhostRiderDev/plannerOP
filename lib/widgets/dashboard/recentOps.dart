@@ -1,4 +1,5 @@
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
+import 'package:plannerop/mapper/operation.dart';
 import 'package:plannerop/store/operations.dart';
 import 'package:plannerop/utils/operations.dart';
 import 'package:plannerop/widgets/operations/components/utils/emptyState.dart';
@@ -14,7 +15,7 @@ class RecentOps extends StatelessWidget {
     return Consumer<OperationsProvider>(
       builder: (context, provider, child) {
         // Obtener las asignaciones ordenadas por fecha reciente
-        final allAssignments = [...provider.assignments];
+        final allAssignments = [...provider.operations];
         allAssignments.sort((a, b) {
           final dateA = a.endDate ?? a.date;
           final dateB = b.endDate ?? b.date;
@@ -107,8 +108,28 @@ class RecentOps extends StatelessWidget {
                                 title: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    ...getServicesGroups(
-                                        context, assignment.groups),
+                                    FutureBuilder<List<Widget>>(
+                                      future: getServicesGroups(
+                                          context, assignment.groups),
+                                      builder: (context, snapshot) {
+                                        if (snapshot.connectionState ==
+                                            ConnectionState.waiting) {
+                                          return const CircularProgressIndicator(
+                                              strokeWidth: 2);
+                                        } else if (snapshot.hasError) {
+                                          return Text(
+                                              'Error: ${snapshot.error}');
+                                        } else if (snapshot.hasData) {
+                                          return Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: snapshot.data!,
+                                          );
+                                        } else {
+                                          return const SizedBox.shrink();
+                                        }
+                                      },
+                                    )
                                   ],
                                 ),
                                 subtitle: Text(

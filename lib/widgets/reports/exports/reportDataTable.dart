@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:intl/intl.dart';
 import 'package:plannerop/core/model/operation.dart';
+import 'package:plannerop/mapper/operation.dart';
 import 'package:plannerop/store/operations.dart';
 import 'package:plannerop/store/workers.dart';
 import 'package:plannerop/store/task.dart';
 import 'package:plannerop/store/clients.dart';
 import 'package:plannerop/store/chargersOp.dart';
-import 'package:plannerop/utils/charts/translate.dart';
+
 import 'package:provider/provider.dart';
 
 class ReportDataTable extends StatefulWidget {
@@ -47,242 +48,168 @@ class _ReportDataTableState extends State<ReportDataTable> {
   }
 
   List<Operation> _getFilteredData(List<Operation> allAssignments) {
-    debugPrint('=== INICIO FILTRADO DE DATOS ===');
-    debugPrint('Total operaciones recibidas: ${allAssignments.length}');
-    debugPrint('Filtros aplicados:');
-    debugPrint('  - Área: ${widget.area}');
-    debugPrint('  - Zona: ${widget.zone}');
-    debugPrint('  - Motonave: ${widget.motorship}');
-    debugPrint('  - Estado: ${widget.status}');
-    debugPrint('  - Fecha inicio: ${widget.startDate}');
-    debugPrint('  - Fecha fin: ${widget.endDate}');
-    debugPrint('  - Búsqueda: $_searchQuery');
-
-    // Mostrar algunas operaciones de ejemplo
-    if (allAssignments.isNotEmpty) {
-      debugPrint('Ejemplo de operaciones disponibles:');
-      for (int i = 0;
-          i < (allAssignments.length > 3 ? 3 : allAssignments.length);
-          i++) {
-        final op = allAssignments[i];
-        debugPrint(
-            '  Op ${op.id}: Área="${op.area}", Fecha=${op.date}, Estado=${op.status}');
-      }
-    }
-
     final filtered = allAssignments.where((data) {
-      // Debug para cada operación
-      debugPrint('Evaluando operación ${data.id}:');
+      // PASO 2: Filtrar solo por fecha SIEMPRE
+      final dataDate = DateTime(data.date.year, data.date.month, data.date.day);
+      final startDate = DateTime(
+          widget.startDate.year, widget.startDate.month, widget.startDate.day);
+      final endDate = DateTime(
+          widget.endDate.year, widget.endDate.month, widget.endDate.day);
 
-      // Filtrar por área
-      if (widget.area != 'Todas' && data.area != widget.area) {
-        debugPrint('  ❌ Filtrada por área: "${data.area}" != "${widget.area}"');
+      if (dataDate.isBefore(startDate) || dataDate.isAfter(endDate)) {
         return false;
       }
-      debugPrint('  ✅ Área OK: "${data.area}"');
 
-      // Filtrar por fecha
-      final date = data.date;
-      if (date.isBefore(widget.startDate) || date.isAfter(widget.endDate)) {
-        debugPrint(
-            '  ❌ Filtrada por fecha: $date no está entre ${widget.startDate} y ${widget.endDate}');
-        return false;
-      }
-      debugPrint('  ✅ Fecha OK: $date');
-
-      // Filtrar por zona
-      if (widget.zone != null) {
-        int? assignmentZone;
-        if (data.zone != null) {
-          try {
-            assignmentZone = int.tryParse(data.zone.toString());
-          } catch (e) {
-            assignmentZone = null;
-          }
-        }
-
-        if (assignmentZone != widget.zone) {
-          debugPrint(
-              '  ❌ Filtrada por zona: $assignmentZone != ${widget.zone}');
+      // PASO 3: Filtrar por área SOLO si no es "Todas"
+      if (widget.area != null &&
+          widget.area != 'Todas' &&
+          widget.area.isNotEmpty) {
+        if (data.area != widget.area) {
           return false;
         }
-        debugPrint('  ✅ Zona OK: $assignmentZone');
       }
 
-      // Filtrar por motonave
+      // PASO 4: Filtrar por zona SOLO si se especifica
+      if (widget.zone != null && widget.zone! > 0) {
+        int? dataZone = int.tryParse(data.zone.toString());
+        if (dataZone != widget.zone) {
+          return false;
+        }
+      }
+
+      // PASO 5: Filtrar por motonave SOLO si se especifica
       if (widget.motorship != null &&
           widget.motorship!.isNotEmpty &&
-          widget.motorship != "Todas") {
-        if (data.motorship == null || data.motorship != widget.motorship) {
-          debugPrint(
-              '  ❌ Filtrada por motonave: "${data.motorship}" != "${widget.motorship}"');
+          widget.motorship != "Todas" &&
+          widget.motorship != "Seleccionar") {
+        if (data.motorship != widget.motorship) {
           return false;
         }
-        debugPrint('  ✅ Motonave OK: "${data.motorship}"');
       }
 
-      // Filtrar por estado
+      // PASO 6: Filtrar por estado - SIMPLIFICADO
       if (widget.status != null &&
           widget.status!.isNotEmpty &&
-          widget.status != "Todos") {
-        String normalizedStatus = normalizeStatus(data.status);
-        if (normalizedStatus != widget.status) {
-          debugPrint(
-              '  ❌ Filtrada por estado: "$normalizedStatus" != "${widget.status}"');
+          widget.status != "Todos" &&
+          widget.status != "Seleccionar") {
+        String filterStatus = widget.status!;
+        String dataStatus = data.status;
+
+        bool statusMatch = false;
+
+        // Comparaciones directas para "En Curso"
+        if (filterStatus == "En curso") {
+          statusMatch = dataStatus.toUpperCase() == "INPROGRESS" ||
+              dataStatus.toLowerCase() == "en curso" ||
+              dataStatus.toLowerCase() == "in progress" ||
+              dataStatus == "En Curso";
+        }
+        // Comparaciones directas para "Pendiente"
+        else if (filterStatus == "Pendiente") {
+          statusMatch = dataStatus.toUpperCase() == "PENDING" ||
+              dataStatus.toLowerCase() == "pendiente";
+        }
+        // Comparaciones directas para "Completada"
+        else if (filterStatus == "Completada") {
+          statusMatch = dataStatus.toUpperCase() == "COMPLETED" ||
+              dataStatus.toLowerCase() == "completada" ||
+              dataStatus.toLowerCase() == "completed";
+        }
+        // Comparaciones directas para "Cancelada"
+        else if (filterStatus == "Cancelada") {
+          statusMatch = dataStatus.toUpperCase() == "CANCELED" ||
+              dataStatus.toLowerCase() == "cancelada" ||
+              dataStatus.toLowerCase() == "cancelled";
+        }
+        // Si no es ninguno de los anteriores, comparar directamente
+        else {
+          statusMatch = dataStatus == filterStatus ||
+              dataStatus.toUpperCase() == filterStatus.toUpperCase();
+        }
+
+        if (!statusMatch) {
           return false;
         }
-        debugPrint('  ✅ Estado OK: "$normalizedStatus"');
       }
 
-      // Filtrar por búsqueda
+      // PASO 7: Filtrar por búsqueda SOLO si hay texto
       if (_searchQuery.isNotEmpty) {
         final searchLower = _searchQuery.toLowerCase();
-        bool foundInSearch = false;
+        bool found = false;
 
-        // Buscar en ID de operación
-        if (data.id.toString().contains(searchLower)) {
-          foundInSearch = true;
-        }
+        // Buscar en ID
+        if (data.id.toString().contains(searchLower)) found = true;
 
         // Buscar en área
-        if (data.area.toLowerCase().contains(searchLower)) {
-          foundInSearch = true;
-        }
+        if (!found && data.area.toLowerCase().contains(searchLower))
+          found = true;
 
         // Buscar en motonave
-        if (data.motorship != null &&
-            data.motorship!.toLowerCase().contains(searchLower)) {
-          foundInSearch = true;
-        }
+        if (!found &&
+            data.motorship != null &&
+            data.motorship!.toLowerCase().contains(searchLower)) found = true;
 
-        // Buscar en nombres de trabajadores
-        for (var group in data.groups) {
-          if (group.workersData != null) {
-            for (var worker in group.workersData!) {
-              if (worker.name.toLowerCase().contains(searchLower) ||
-                  worker.document.toLowerCase().contains(searchLower)) {
-                foundInSearch = true;
-                break;
+        // Buscar en trabajadores
+        if (!found) {
+          for (var group in data.groups) {
+            if (group.workersData != null) {
+              for (var worker in group.workersData!) {
+                if (worker.name.toLowerCase().contains(searchLower) ||
+                    worker.document.toLowerCase().contains(searchLower)) {
+                  found = true;
+                  break;
+                }
               }
             }
+            if (found) break;
           }
-          if (foundInSearch) break;
         }
 
-        if (!foundInSearch) {
-          debugPrint('  ❌ Filtrada por búsqueda: no contiene "$_searchQuery"');
-          return false;
-        }
-        debugPrint('  ✅ Búsqueda OK: contiene "$_searchQuery"');
+        if (!found) return false;
       }
 
-      debugPrint('  ✅ Operación ${data.id} APROBADA');
       return true;
     }).toList();
 
-    debugPrint('=== RESULTADO FILTRADO ===');
-    debugPrint('Operaciones después del filtrado: ${filtered.length}');
+    if (filtered.isEmpty) {
+    } else {}
 
-    if (filtered.isNotEmpty) {
-      debugPrint('Operaciones filtradas:');
-      for (var op in filtered) {
-        debugPrint('  - Op ${op.id}: ${op.area}, ${op.groups.length} grupos');
-      }
-    }
-
-    // Ordenar datos
+    // Ordenar
     filtered.sort((a, b) {
-      var comparison = 0;
       switch (_sortColumnIndex) {
-        case 0: // ID Op
-          comparison = (a.id ?? 0).compareTo(b.id ?? 0);
-          break;
-        case 1: // Fecha Inicial
-          comparison = a.date.compareTo(b.date);
-          break;
-        case 2: // Hora Inicial
-          comparison = a.time.compareTo(b.time);
-          break;
-        case 5: // Área
-          comparison = a.area.compareTo(b.area);
-          break;
-        case 6: // Zona
-          final aZone = int.tryParse(a.zone.toString()) ?? 0;
-          final bZone = int.tryParse(b.zone.toString()) ?? 0;
-          comparison = aZone.compareTo(bZone);
-          break;
-        case 7: // Motonave
-          final aMotorship = a.motorship ?? '';
-          final bMotorship = b.motorship ?? '';
-          comparison = aMotorship.compareTo(bMotorship);
-          break;
-        case 10: // Fecha Finalización
-          final aEndDate = a.endDate ?? DateTime(1900);
-          final bEndDate = b.endDate ?? DateTime(1900);
-          comparison = aEndDate.compareTo(bEndDate);
-          break;
-        case 11: // Hora Finalización
-          final aEndTime = a.endTime ?? '';
-          final bEndTime = b.endTime ?? '';
-          comparison = aEndTime.compareTo(bEndTime);
-          break;
-        case 12: // Estado
-          comparison = a.status.compareTo(b.status);
-          break;
+        case 0:
+          return (a.id ?? 0).compareTo(b.id ?? 0);
+        case 1:
+          return a.date.compareTo(b.date);
+        case 5:
+          return a.area.compareTo(b.area);
+        case 12:
+          return a.status.compareTo(b.status);
         default:
-          comparison = 0;
+          return 0;
       }
-      return _sortAscending ? comparison : -comparison;
     });
 
-    debugPrint('=== FIN FILTRADO ===');
+    if (!_sortAscending) {
+      filtered.sort((a, b) => -(filtered.indexOf(a) - filtered.indexOf(b)));
+    }
+
     return filtered;
   }
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('=== BUILD ReportDataTable ===');
     final assignmentsProvider = Provider.of<OperationsProvider>(context);
     final usersProvider = Provider.of<WorkersProvider>(context, listen: false);
 
     // Obtenemos las asignaciones del provider
-    final allAssignments = assignmentsProvider.assignments;
-    debugPrint('Operaciones del provider: ${allAssignments.length}');
+    final allAssignments = assignmentsProvider.operations;
 
     // Aplicamos los filtros a las asignaciones
     final filteredData = _getFilteredData(allAssignments);
-    debugPrint('Operaciones filtradas para mostrar: ${filteredData.length}');
 
     return Column(
       children: [
-        // Información de depuración (temporal)
-        Container(
-          padding: const EdgeInsets.all(8),
-          margin: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.yellow.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.orange),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('🔍 DEBUG INFO:',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              Text('Total en provider: ${allAssignments.length}'),
-              Text('Filtradas: ${filteredData.length}'),
-              Text('Área filtro: "${widget.area}"'),
-              Text('Estado filtro: "${widget.status ?? 'null'}"'),
-              if (allAssignments.isNotEmpty) ...[
-                Text(
-                    'Ejemplo áreas disponibles: ${allAssignments.take(3).map((o) => '"${o.area}"').join(', ')}'),
-                Text(
-                    'Ejemplo estados disponibles: ${allAssignments.take(3).map((o) => '"${o.status}"').join(', ')}'),
-              ]
-            ],
-          ),
-        ),
-
         // Barra de búsqueda
         _buildSearchBar(),
 
@@ -295,7 +222,18 @@ class _ReportDataTableState extends State<ReportDataTable> {
         Expanded(
           child: filteredData.isEmpty
               ? _buildEmptyState()
-              : _buildDataTable(filteredData, usersProvider),
+              : FutureBuilder<Widget>(
+                  future: _buildDataTable(filteredData, usersProvider),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError) {
+                      return Center(child: Text('Error: ${snapshot.error}'));
+                    }
+                    return snapshot.data ?? const SizedBox();
+                  },
+                ),
         ),
       ],
     );
@@ -356,12 +294,9 @@ class _ReportDataTableState extends State<ReportDataTable> {
     );
   }
 
-  Widget _buildDataTable(List<Operation> data, WorkersProvider usersProvider) {
-    debugPrint('=== CONSTRUYENDO TABLA ===');
-    debugPrint('Datos para tabla: ${data.length} operaciones');
-
-    final rows = _buildExpandedRows(data);
-    debugPrint('Filas generadas: ${rows.length}');
+  Future<Widget> _buildDataTable(
+      List<Operation> data, WorkersProvider usersProvider) async {
+    final rows = await _buildExpandedRows(data);
 
     return SingleChildScrollView(
       scrollDirection: Axis.vertical,
@@ -390,15 +325,14 @@ class _ReportDataTableState extends State<ReportDataTable> {
             _buildDataColumn('Hora Fin', 11),
             _buildDataColumn('Estado', 12),
           ],
-          rows: rows,
+          rows: await rows,
         ),
       ),
     );
   }
 
   // Método para expandir las filas con un trabajador por fila (igual que en Excel)
-  List<DataRow> _buildExpandedRows(List<Operation> data) {
-    debugPrint('=== CONSTRUYENDO FILAS ===');
+  Future<List<DataRow>> _buildExpandedRows(List<Operation> data) async {
     List<DataRow> rows = [];
 
     // Para alternar colores por operación
@@ -406,10 +340,6 @@ class _ReportDataTableState extends State<ReportDataTable> {
     int currentOperationOrder = 0;
 
     for (var assignment in data) {
-      debugPrint('Procesando operación ${assignment.id}:');
-      debugPrint('  - Área: ${assignment.area}');
-      debugPrint('  - Grupos: ${assignment.groups.length}');
-
       // Determinar si es una nueva operación
       bool isNewOperation = lastOperationId != assignment.id;
       if (isNewOperation) {
@@ -423,16 +353,11 @@ class _ReportDataTableState extends State<ReportDataTable> {
           : const Color(0xFFEDF2F7);
 
       // Obtener información adicional
-      final taskName = _getTaskName(assignment);
+      final taskName = await _getTaskName(assignment);
       final clientName = _getClientName(assignment.clientId);
       final supervisorNames = _getSupervisorNames(assignment.inChagers);
 
-      debugPrint('  - Tarea: $taskName');
-      debugPrint('  - Cliente: $clientName');
-      debugPrint('  - Supervisores: $supervisorNames');
-
       if (assignment.groups.isEmpty) {
-        debugPrint('  - Sin grupos, creando fila básica');
         // Operación sin grupos
         rows.add(
           DataRow(
@@ -465,11 +390,7 @@ class _ReportDataTableState extends State<ReportDataTable> {
           final group = assignment.groups[groupIndex];
           final shiftName = 'Turno ${groupIndex + 1}';
 
-          debugPrint(
-              '  - Grupo $groupIndex: ${group.workers.length} trabajadores');
-
           if (group.workers.isEmpty) {
-            debugPrint('    - Grupo sin trabajadores');
             // Grupo sin trabajadores
             rows.add(
               DataRow(
@@ -524,8 +445,6 @@ class _ReportDataTableState extends State<ReportDataTable> {
                 }
               }
 
-              debugPrint('    - Trabajador: $workerName ($workerDni)');
-
               rows.add(
                 DataRow(
                   color: MaterialStateProperty.all(backgroundColor),
@@ -554,18 +473,18 @@ class _ReportDataTableState extends State<ReportDataTable> {
       }
     }
 
-    debugPrint('Total filas creadas: ${rows.length}');
     return rows;
   }
 
   // Métodos auxiliares para obtener información adicional
-  String _getTaskName(Operation assignment) {
+  Future<String> _getTaskName(Operation assignment) async {
     try {
       final tasksProvider = Provider.of<TasksProvider>(context, listen: false);
       if (assignment.groups.isNotEmpty) {
         final firstGroup = assignment.groups.first;
         if (firstGroup.serviceId > 0) {
-          return tasksProvider.getTaskNameByIdService(firstGroup.serviceId);
+          return await tasksProvider.getTaskNameByIdServiceAsync(
+              firstGroup.serviceId, context);
         }
       }
       return 'Tarea no especificada';
@@ -643,23 +562,7 @@ class _ReportDataTableState extends State<ReportDataTable> {
   }
 
   Widget _buildStatusWidget(String status) {
-    Color color;
-    switch (status.toUpperCase()) {
-      case 'COMPLETED':
-        color = const Color(0xFF38A169);
-        break;
-      case 'INPROGRESS':
-        color = const Color(0xFF3182CE);
-        break;
-      case 'PENDING':
-        color = const Color(0xFFDD6B20);
-        break;
-      case 'CANCELED':
-        color = const Color(0xFFE53E3E);
-        break;
-      default:
-        color = const Color(0xFF718096);
-    }
+    Color color = getStatusColor(status);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -669,7 +572,7 @@ class _ReportDataTableState extends State<ReportDataTable> {
         border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Text(
-        normalizeStatus(status),
+        getOperationStatusText(status),
         style: TextStyle(
           color: color,
           fontWeight: FontWeight.w500,
@@ -731,21 +634,5 @@ class _ReportDataTableState extends State<ReportDataTable> {
         ],
       ),
     );
-  }
-}
-
-// Función helper para normalizar estados (agregar al final del archivo)
-String normalizeStatus(String status) {
-  switch (status.toUpperCase()) {
-    case 'COMPLETED':
-      return 'Completada';
-    case 'INPROGRESS':
-      return 'En Curso';
-    case 'PENDING':
-      return 'Pendiente';
-    case 'CANCELED':
-      return 'Cancelada';
-    default:
-      return status;
   }
 }

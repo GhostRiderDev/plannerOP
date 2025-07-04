@@ -4,16 +4,15 @@ import 'package:plannerop/core/model/worker.dart';
 import 'package:plannerop/store/workers.dart';
 import 'package:plannerop/utils/toast.dart';
 import 'package:provider/provider.dart';
+import 'package:plannerop/widgets/operations/components/utils/dropdownField.dart';
 
 class WorkerIncapacitationDialog extends StatefulWidget {
   final Worker worker;
-  final Color specialtyColor;
   final Function(Worker, DateTime, DateTime) onIncapacitate;
 
   const WorkerIncapacitationDialog({
     Key? key,
     required this.worker,
-    required this.specialtyColor,
     required this.onIncapacitate,
   }) : super(key: key);
 
@@ -30,16 +29,33 @@ class _WorkerIncapacitationDialogState
   DateTime _endDate =
       DateTime.now().add(const Duration(days: 7)); // Por defecto 7 días
 
-  String? _reasonController;
+  final TextEditingController _tipoIncapacidadController =
+      TextEditingController();
+  final TextEditingController _causaIncapacidadController =
+      TextEditingController();
+  final TextEditingController _motivoController = TextEditingController();
+
   bool _isLoading = false;
 
-  final List<String> _incapacitationReasons = [
-    'Enfermedad',
-    'Accidente laboral',
-    'Cirugía programada',
-    'Maternidad/Paternidad',
-    'Otro'
+  // Lista de opciones
+  final List<String> _tiposIncapacidad = [
+    'Inicial',
+    'Prórroga',
   ];
+
+  final List<String> _causasIncapacidad = [
+    'Accidente Laboral',
+    'Accidente de Tránsito',
+    'Enfermedad General',
+  ];
+
+  @override
+  void dispose() {
+    _tipoIncapacidadController.dispose();
+    _causaIncapacidadController.dispose();
+    _motivoController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -85,109 +101,29 @@ class _WorkerIncapacitationDialogState
 
                 const SizedBox(height: 24),
 
-                // Información del trabajador
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: widget.specialtyColor,
-                        radius: 24,
-                        child: Text(
-                          widget.worker.name[0].toUpperCase(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.worker.name,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                            Text(
-                              widget.worker.area,
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                // Tipo de incapacidad
+                DropdownField(
+                  label: 'Tipo de incapacidad',
+                  hint: 'Seleccionar tipo',
+                  icon: Icons.category_outlined,
+                  controller: _tipoIncapacidadController,
+                  options: _tiposIncapacidad,
+                  onSelected: (value) {
+                    // Callback opcional si necesitas hacer algo cuando se selecciona
+                  },
                 ),
 
-                const SizedBox(height: 24),
-
-                // Selector de motivo
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Motivo de incapacidad',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: Color(0xFF4A5568),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 4),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButtonFormField<String>(
-                          value: _reasonController,
-                          isExpanded: true,
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          hint: const Text('Seleccionar motivo'),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Por favor selecciona un motivo';
-                            }
-                            return null;
-                          },
-                          items: _incapacitationReasons.map((String reason) {
-                            return DropdownMenuItem<String>(
-                              value: reason,
-                              child: Text(reason),
-                            );
-                          }).toList(),
-                          onChanged: (String? newValue) {
-                            setState(() {
-                              _reasonController = newValue;
-                            });
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
+                // Causa de incapacidad
+                DropdownField(
+                  label: 'Causa de incapacidad',
+                  hint: 'Seleccionar causa',
+                  icon: Icons.healing_outlined,
+                  controller: _causaIncapacidadController,
+                  options: _causasIncapacidad,
+                  onSelected: (value) {
+                    // Callback opcional si necesitas hacer algo cuando se selecciona
+                  },
                 ),
-
-                const SizedBox(height: 20),
 
                 // Fechas de incapacidad
                 Row(
@@ -423,22 +359,46 @@ class _WorkerIncapacitationDialogState
     return _endDate.difference(_startDate).inDays + 1;
   }
 
-// Modificar el método _submitIncapacitation
+  // Validar que todos los campos requeridos estén completados
+  bool _validateForm() {
+    if (_tipoIncapacidadController.text.isEmpty) {
+      showErrorToast(context, 'Por favor selecciona el tipo de incapacidad');
+      return false;
+    }
+    if (_causaIncapacidadController.text.isEmpty) {
+      showErrorToast(context, 'Por favor selecciona la causa de incapacidad');
+      return false;
+    }
+
+    return true;
+  }
+
+  // Modificar el método _submitIncapacitation
   void _submitIncapacitation() async {
-    if (_formKey.currentState!.validate()) {
+    if (_formKey.currentState!.validate() && _validateForm()) {
       setState(() {
         _isLoading = true;
       });
 
       try {
-        // Llamar a la función para incapacitar al trabajador
-        final success = await Provider.of<WorkersProvider>(context,
-                listen: false)
-            .incapacitateWorker(widget.worker, _startDate, _endDate, context);
+        // Llamar a la función para incapacitar al trabajador con los nuevos parámetros
+        final success =
+            await Provider.of<WorkersProvider>(context, listen: false)
+                .incapacitateWorker(
+          widget.worker,
+          _startDate,
+          _endDate,
+          context,
+          tipo: _tipoIncapacidadController.text,
+          causa: _causaIncapacidadController.text,
+        );
 
         if (success) {
           // Mostrar mensaje de éxito y cerrar el diálogo
           showSuccessToast(context, 'Incapacidad registrada con éxito');
+
+          // Llamar al callback con los datos
+          widget.onIncapacitate(widget.worker, _startDate, _endDate);
 
           Navigator.of(context).pop();
         } else {

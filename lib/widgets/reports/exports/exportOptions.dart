@@ -1,17 +1,20 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart' hide Border;
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart' hide Border;
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:plannerop/core/model/operation.dart';
 import 'package:plannerop/services/operations/operationReports.dart';
 
 import 'package:plannerop/utils/charts/mapper.dart';
-import 'package:plannerop/utils/charts/translate.dart';
+
 import 'package:plannerop/utils/toast.dart';
 import 'package:plannerop/widgets/reports/exports/excelGenerator.dart';
 import 'package:plannerop/widgets/reports/exports/reportDataProcessor.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter/painting.dart' show Border, BorderSide;
+import 'package:permission_handler/permission_handler.dart';
 
 class ExportOptions extends StatefulWidget {
   final String periodName;
@@ -189,25 +192,29 @@ class _ExportOptionsState extends State<ExportOptions> {
       }
 
       // Procesar datos
-      final reportData = ReportDataProcessor.processOperations(
+      final reportData = await ReportDataProcessor.processOperations(
           _filteredAssignments, _getReportTitle(), _getDateRange(), context);
 
-      // Generar Excel
-      final file = await ExcelGenerator.generateReport(reportData);
+      // ✅ USAR SOLO DIRECTORIO TEMPORAL (NO NECESITA PERMISOS)
+      final tempDir = await getTemporaryDirectory();
+      final fileName =
+          'reporte_operaciones_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+      final file = File('${tempDir.path}/$fileName');
 
-      // Compartir archivo
+      // Generar Excel
+      await ExcelGenerator.generateReportAtPath(reportData, file.path);
+
+      // Compartir
       await Share.shareXFiles(
         [XFile(file.path)],
         subject: reportData.reportTitle,
-        text:
-            'Adjunto el reporte detallado de operaciones con dos hojas: Reporte-Trabajadores y Reporte-General.',
+        text: 'Adjunto el reporte detallado de operaciones.',
       );
 
       widget.onExport('Excel detallado exportado correctamente');
     } catch (e) {
-      debugPrint('Error al exportar Excel detallado: $e');
-      _showErrorSnackbar(e);
-      widget.onExport('Error al exportar Excel detallado');
+      debugPrint('Error al exportar Excel: $e');
+      widget.onExport('Error al exportar: $e');
     }
   }
 

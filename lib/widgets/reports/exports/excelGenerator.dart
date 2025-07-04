@@ -70,6 +70,36 @@ class ExcelGenerator {
     };
   }
 
+// Agregar este método a la clase ExcelGenerator
+  static Future<File> generateReportAtPath(
+      ReportData reportData, String filePath) async {
+    final xlsio.Workbook workbook = xlsio.Workbook();
+
+    // Crear hojas
+    final workerSheet = workbook.worksheets[0];
+    workerSheet.name = 'Reporte-Trabajadores';
+
+    final generalSheet = workbook.worksheets.add();
+    generalSheet.name = 'Reporte-General';
+
+    // Crear estilos
+    final styles = _createStyles(workbook);
+
+    // Generar hoja de trabajadores
+    await _generateWorkerSheet(workerSheet, reportData, styles);
+
+    // Generar hoja general
+    await _generateGeneralSheet(generalSheet, reportData, styles);
+
+    // Guardar archivo en la ruta específica
+    final List<int> bytes = workbook.saveAsStream();
+    final File file = File(filePath);
+    await file.writeAsBytes(bytes, flush: true);
+
+    workbook.dispose();
+    return file;
+  }
+
   static Future<void> _generateWorkerSheet(
     xlsio.Worksheet sheet,
     ReportData reportData,

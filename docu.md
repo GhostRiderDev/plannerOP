@@ -60,7 +60,7 @@ El sistema permite:
 ### 4.3 Justificación Operativa
 CargoPlanner responde directamente a las necesidades operativas de:
 - Visualización en tiempo real del estado de operaciones
-- Asignación eficiente basada en disponibilidad y habilidades
+- Operación eficiente basada en disponibilidad y habilidades
 - Seguimiento automatizado de tareas y personal
 - Generación automática de reportes y análisis de datos
 
@@ -136,7 +136,7 @@ La aplicación cliente también sigue una arquitectura de tres capas:
    - Atributos: id, nombre, documento, área, disponibilidad, estado
    - Relaciones: Asignaciones, Grupos
 
-2. **Assignment (Asignación)**
+2. **Assignment (Operación)**
    - Atributos: id, área, tarea, fecha, hora, zona, motonave, estado
    - Relaciones: Trabajadores, Grupos, Supervisores
 
@@ -182,11 +182,11 @@ La aplicación cliente también sigue una arquitectura de tres capas:
 - Creación de nuevas asignaciones con selección de personal
 - Establecimiento de fechas, horarios y prioridades
 - Seguimiento del ciclo de vida (Pendiente → En Curso → Completada/Cancelada)
-- Asignación de supervisores responsables
+- Operación de supervisores responsables
 
 ### 8.3 Grupos de Trabajo
 - Creación y gestión de equipos con nombre distintivo
-- Asignación de personal específico a cada grupo
+- Operación de personal específico a cada grupo
 - Establecimiento de horarios específicos independientes
 - Seguimiento grupal de actividades y rendimiento
 
@@ -210,7 +210,7 @@ La aplicación cliente también sigue una arquitectura de tres capas:
 
 ## 9. Flujos de Trabajo Principales
 
-### 9.1 Flujo de Asignación de Trabajadores
+### 9.1 Flujo de Operación de Trabajadores
 
 ```
 ┌───────────┐     ┌───────────────┐     ┌───────────────┐
@@ -219,12 +219,12 @@ La aplicación cliente también sigue una arquitectura de tres capas:
 └───────────┘     └───────────────┘     └───────┬───────┘
                                                 │
 ┌───────────┐     ┌───────────────┐     ┌───────▼───────┐
-│ Asignación│◀────│    Guardar    │◀────│   Seleccionar │
+│ Operación│◀────│    Guardar    │◀────│   Seleccionar │
 │  Creada   │     │               │     │ Supervisores  │
 └───────────┘     └───────────────┘     └───────────────┘
 ```
 
-### 9.2 Ciclo de Vida de una Asignación
+### 9.2 Ciclo de Vida de una Operación
 
 ```
 ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
@@ -381,7 +381,7 @@ Su arquitectura modular, enfoque multiplataforma y diseño centrado en el usuari
 
 | Término | Definición |
 |---------|------------|
-| Asignación | Tarea o operación específica a la que se destinan trabajadores |
+| Operación | Tarea o operación específica a la que se destinan trabajadores |
 | Trabajador | Personal disponible para ser asignado a tareas específicas |
 | Grupo de Trabajo | Conjunto de trabajadores agrupados para una tarea común |
 | Área | División organizacional donde se realizan actividades específicas |

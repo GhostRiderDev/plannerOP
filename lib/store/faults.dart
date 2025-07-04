@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:plannerop/core/model/fault.dart';
 import 'package:plannerop/core/model/worker.dart';
 import 'package:plannerop/services/faults/fault.dart';
+import 'package:plannerop/store/workers.dart';
+import 'package:provider/provider.dart';
 
 class FaultsProvider extends ChangeNotifier {
   List<Fault> _faults = [];
@@ -103,9 +105,6 @@ class FaultsProvider extends ChangeNotifier {
           faultDate.isAfter(latestFaultDate[workerId]!)) {
         latestFaultDate[workerId] = faultDate;
       }
-
-      // debugPrint(
-      //     'Worker ID: $workerId, Faltas: ${workerFaultCount[workerId]}, Última falta: ${latestFaultDate[workerId]}');
     }
 
     // Obtener lista única de trabajadores (sin duplicados)
@@ -143,8 +142,6 @@ class FaultsProvider extends ChangeNotifier {
           dateA); // Orden descendente por fecha (más reciente primero)
     });
 
-  
-
     // debugPrint(
     //     'Trabajadores con faltas encontrados: ${workersWithFaults.length}');
 
@@ -154,5 +151,220 @@ class FaultsProvider extends ChangeNotifier {
   // Añadir un método para obtener la cantidad de faltas por trabajador
   int getFaultCountForWorker(int workerId) {
     return _faults.where((fault) => fault.worker.id == workerId).length;
+  }
+
+  // Registrar falta con descripción y actualizar el contador
+  Future<bool> registerFault(
+    Worker worker,
+    BuildContext context, {
+    String? description,
+  }) async {
+    try {
+      // Llamar al servicio para registrar la falta
+      final success = await _faultService.registerFault(worker, context,
+          description: description);
+      if (success) {
+        final _workers =
+            Provider.of<WorkersProvider>(context, listen: false).workers;
+
+        // Actualizar el contador de faltas en la copia local del worker
+        final index = _workers.indexWhere((w) => w.id == worker.id);
+        if (index >= 0) {
+          final updatedWorker = Worker(
+            id: worker.id,
+            name: worker.name,
+            area: worker.area,
+            phone: worker.phone,
+            document: worker.document,
+            status: worker.status,
+            startDate: worker.startDate,
+            endDate: worker.endDate,
+            code: worker.code,
+            incapacityStartDate: worker.incapacityStartDate,
+            incapacityEndDate: worker.incapacityEndDate,
+            failures: worker.failures + 1,
+            idArea: worker.idArea,
+            deactivationDate: worker.deactivationDate,
+          );
+          _workers[index] = updatedWorker;
+          notifyListeners();
+        }
+
+        // Además de actualizar el worker, crear un registro de falta para el FaultsProvider
+        if (description != null && description.isNotEmpty) {
+          final faultsProvider =
+              Provider.of<FaultsProvider>(context, listen: false);
+          faultsProvider.addFault(Fault(
+            description: description,
+            type: FaultType.INASSISTANCE,
+            id: 0, // El ID lo asignará la API
+            worker: worker,
+            createdAt: DateTime.now(),
+          ));
+        }
+
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Error en registerFault: $e');
+      return false;
+    }
+  }
+
+  // Registrar abandono (solo registra el incidente, no incrementa el contador)
+  Future<bool> registerAbandonment(
+    Worker worker,
+    BuildContext context, {
+    String? description,
+  }) async {
+    try {
+      if (description == null || description.isEmpty) {
+        return false;
+      }
+
+      // Llamar al servicio para registrar el abandono
+      final success = await _faultService.registerAbandonment(worker, context,
+          description: description);
+
+      final _workers =
+          Provider.of<WorkersProvider>(context, listen: false).workers;
+
+      if (success) {
+        // Actualizar el contador de faltas en la copia local del worker
+        final index = _workers.indexWhere((w) => w.id == worker.id);
+        if (index >= 0) {
+          final updatedWorker = Worker(
+            id: worker.id,
+            name: worker.name,
+            area: worker.area,
+            phone: worker.phone,
+            document: worker.document,
+            status: worker.status,
+            startDate: worker.startDate,
+            endDate: worker.endDate,
+            code: worker.code,
+            incapacityStartDate: worker.incapacityStartDate,
+            incapacityEndDate: worker.incapacityEndDate,
+            failures: worker.failures + 1,
+            idArea: worker.idArea,
+            deactivationDate: worker.deactivationDate,
+          );
+          _workers[index] = updatedWorker;
+          notifyListeners();
+        }
+
+        // Además de actualizar el worker, crear un registro de falta para el FaultsProvider
+        if (description.isNotEmpty) {
+          final faultsProvider =
+              Provider.of<FaultsProvider>(context, listen: false);
+          faultsProvider.addFault(Fault(
+            description: description,
+            type: FaultType.INASSISTANCE,
+            id: 0, // El ID lo asignará la API
+            worker: worker,
+            createdAt: DateTime.now(),
+          ));
+        }
+
+        return true;
+      }
+      if (success) {
+        // Crear un registro de abandono en el FaultsProvider
+        final faultsProvider =
+            Provider.of<FaultsProvider>(context, listen: false);
+        faultsProvider.addFault(Fault(
+          description: description,
+          type: FaultType.ABANDONMENT,
+          id: 0, // El ID lo asignará la API
+          worker: worker,
+          createdAt: DateTime.now(),
+        ));
+
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Error en registerAbandonment: $e');
+      return false;
+    }
+  }
+
+  // Registrar falta de respeto (solo registra el incidente, no incrementa el contador)
+  Future<bool> registerDisrespect(
+    Worker worker,
+    BuildContext context, {
+    String? description,
+  }) async {
+    try {
+      if (description == null || description.isEmpty) {
+        return false;
+      }
+
+      // Llamar al servicio para registrar la falta de respeto
+      final success = await _faultService.registerDisrespect(worker, context,
+          description: description);
+
+      if (success) {
+        final _workers =
+            Provider.of<WorkersProvider>(context, listen: false).workers;
+
+        // Actualizar el contador de faltas en la copia local del worker
+        final index = _workers.indexWhere((w) => w.id == worker.id);
+        if (index >= 0) {
+          final updatedWorker = Worker(
+            id: worker.id,
+            name: worker.name,
+            area: worker.area,
+            phone: worker.phone,
+            document: worker.document,
+            status: worker.status,
+            startDate: worker.startDate,
+            endDate: worker.endDate,
+            code: worker.code,
+            incapacityStartDate: worker.incapacityStartDate,
+            incapacityEndDate: worker.incapacityEndDate,
+            failures: worker.failures + 1,
+            idArea: worker.idArea,
+            deactivationDate: worker.deactivationDate,
+          );
+          _workers[index] = updatedWorker;
+          notifyListeners();
+        }
+
+        // Además de actualizar el worker, crear un registro de falta para el FaultsProvider
+        if (description.isNotEmpty) {
+          final faultsProvider =
+              Provider.of<FaultsProvider>(context, listen: false);
+          faultsProvider.addFault(Fault(
+            description: description,
+            type: FaultType.INASSISTANCE,
+            id: 0, // El ID lo asignará la API
+            worker: worker,
+            createdAt: DateTime.now(),
+          ));
+        }
+
+        return true;
+      }
+      if (success) {
+        // Crear un registro de falta de respeto en el FaultsProvider
+        final faultsProvider =
+            Provider.of<FaultsProvider>(context, listen: false);
+        faultsProvider.addFault(Fault(
+          description: description,
+          type: FaultType.IRRESPECTFUL,
+          id: 0, // El ID lo asignará la API
+          worker: worker,
+          createdAt: DateTime.now(),
+        ));
+
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Error en registerDisrespect: $e');
+      return false;
+    }
   }
 }

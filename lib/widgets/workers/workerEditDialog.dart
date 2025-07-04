@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:plannerop/core/model/area.dart';
 import 'package:plannerop/core/model/worker.dart';
 import 'package:intl/intl.dart';
+import 'package:plannerop/mapper/operation.dart';
 import 'package:plannerop/store/areas.dart';
 import 'package:plannerop/utils/operations.dart';
+import 'package:plannerop/widgets/workers/workerIncapacitationDialog.dart';
 
 // Import necesario para el método min
 import 'dart:math' as Math;
@@ -262,7 +264,7 @@ class _WorkerEditDialogState extends State<WorkerEditDialog> {
 
                 // Campos de fechas de incapacidad (condicional)
                 if (_selectedStatus == WorkerStatus.incapacitated)
-                  _buildIncapacitationDateFields(),
+                  _buildIncapacitationDateFields(widget.worker),
 
                 // Campo de fecha de retiro (condicional)
                 if (_selectedStatus == WorkerStatus.deactivated)
@@ -521,7 +523,7 @@ class _WorkerEditDialogState extends State<WorkerEditDialog> {
     );
   }
 
-  Widget _buildIncapacitationDateFields() {
+  Widget _buildIncapacitationDateFields(Worker worker) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -533,15 +535,15 @@ class _WorkerEditDialogState extends State<WorkerEditDialog> {
           decoration: BoxDecoration(
             color: Colors.purple[50],
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.purple[200]!),
+            border: Border.all(color: Colors.purple[100]!),
           ),
           child: Row(
             children: [
-              Icon(Icons.medical_services_outlined, color: Colors.purple[700]),
+              Icon(Icons.info_outline, color: Colors.purple[700]),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'El trabajador será marcado como incapacitado durante el período especificado.',
+                  'Para registrar una nueva incapacidad, haga clic en el botón "Registrar Incapacidad".',
                   style: TextStyle(color: Colors.purple[700]),
                 ),
               ),
@@ -550,126 +552,50 @@ class _WorkerEditDialogState extends State<WorkerEditDialog> {
         ),
         const SizedBox(height: 16),
 
-        // Fechas (inicio y fin)
-        Row(
-          children: [
-            // Fecha de inicio
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Inicio de incapacidad',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: Color(0xFF4A5568),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  InkWell(
-                    onTap: () => _selectDate(context, true),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 14),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                        color: Colors.white,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.calendar_today,
-                              size: 16, color: Colors.purple[700]),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _startDate != null
-                                  ? DateFormat('dd/MM/yyyy').format(_startDate!)
-                                  : 'Seleccionar fecha',
-                              style: TextStyle(
-                                color: _startDate != null
-                                    ? const Color(0xFF2D3748)
-                                    : const Color(0xFF718096),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-
-            // Fecha de fin
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Fin de incapacidad',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: Color(0xFF4A5568),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  InkWell(
-                    onTap: () => _selectDate(context, false),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 14),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                        color: Colors.white,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.calendar_today,
-                              size: 16, color: Colors.purple[700]),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _endDate != null
-                                  ? DateFormat('dd/MM/yyyy').format(_endDate!)
-                                  : 'Seleccionar fecha',
-                              style: TextStyle(
-                                color: _endDate != null
-                                    ? const Color(0xFF2D3748)
-                                    : const Color(0xFF718096),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-
-        // Duración
-        if (_startDate != null && _endDate != null) ...[
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.only(left: 8),
-            child: Text(
-              'Duración: ${_endDate!.difference(_startDate!).inDays + 1} días',
-              style: TextStyle(
-                color: Colors.purple[700],
-                fontWeight: FontWeight.w500,
-              ),
+        // Botón para abrir el diálogo de incapacitación
+        ElevatedButton(
+          onPressed: () => _showIncapacitationDialog(),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.purple[700],
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
             ),
           ),
-        ],
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.medical_services, color: Colors.white),
+              SizedBox(width: 8),
+              Text(
+                'Registrar Incapacidad',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
+  }
+
+  void _showIncapacitationDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => WorkerIncapacitationDialog(
+        worker: widget.worker,
+        onIncapacitate: onIncapacitate,
+      ),
+    );
+  }
+
+  void onIncapacitate(Worker worker, DateTime startDate, DateTime endDate) {
+    setState(() {
+      _startDate = startDate;
+      _endDate = endDate;
+    });
   }
 
   Widget _buildRetirementDateField() {

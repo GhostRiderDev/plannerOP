@@ -8,7 +8,6 @@ import 'package:plannerop/core/model/worker.dart';
 import 'package:plannerop/core/model/workerGroup.dart';
 import 'package:plannerop/store/auth.dart';
 import 'package:plannerop/utils/charts/chartData.dart';
-import 'package:plannerop/utils/groups/groups.dart';
 import 'package:provider/provider.dart';
 
 class PaginatedOperationsService {
@@ -200,7 +199,7 @@ class PaginatedOperationsService {
         id: operationData['id'],
         area: operationData['jobArea']?['name'] ?? 'Sin área',
         date: DateTime.parse(operationData['dateStart']),
-        time: operationData['timeStart'] ?? '', // ✅ Corregido de 'timeStrat'
+        time: operationData['timeStart'] ?? '',
         status: operationData['status'] ?? 'PENDING',
         endTime: operationData['timeEnd'],
         endDate: operationData['dateEnd'] != null

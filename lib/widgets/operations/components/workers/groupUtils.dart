@@ -4,8 +4,7 @@ import 'package:plannerop/core/model/workerGroup.dart';
 import 'package:plannerop/store/operations.dart';
 
 import 'package:plannerop/utils/toast.dart';
-import 'package:plannerop/widgets/operations/add/addOperationDialog.dart';
-import 'package:plannerop/widgets/operations/update/editOperationForm.dart';
+import 'package:plannerop/widgets/operations/edit/editOperationForm.dart';
 import 'package:provider/provider.dart';
 
 // Eliminar un grupo de trabajadores
@@ -64,8 +63,12 @@ void removeWorker({
     final assignmentsProvider =
         Provider.of<OperationsProvider>(context, listen: false);
 
-    assignmentsProvider.removeGroupFromAssignment(
-      [worker.id],
+    Map<String, List<int>> data = {
+      workerGroup!.id.toString(): [worker.id],
+    };
+
+    assignmentsProvider.removeGroupFromOperation(
+      data,
       context,
       assignmentId,
     );
@@ -106,49 +109,6 @@ void removeWorker({
   onWorkersChanged(updatedList);
 }
 
-// Manejo de trabajadores eliminados en modo edición
-void _handleDeletedWorkersInEditMode(
-  List<int> workersToRemove,
-  List<Worker> selectedWorkers,
-  List<Worker> deletedWorkers,
-  Function(List<Worker>)? onDeletedWorkersChanged,
-) {
-  if (onDeletedWorkersChanged == null) return;
-
-  List<Worker> updatedDeletedWorkers = List.from(deletedWorkers);
-
-  for (var workerId in workersToRemove) {
-    final workerToRemove = selectedWorkers.firstWhere((w) => w.id == workerId,
-        orElse: () => null as Worker);
-
-    if (workerToRemove != null &&
-        !updatedDeletedWorkers.any((w) => w.id == workerToRemove.id)) {
-      updatedDeletedWorkers.add(workerToRemove);
-    }
-  }
-
-  onDeletedWorkersChanged(updatedDeletedWorkers);
-}
-
-// Determinar qué trabajadores mantener después de eliminar un grupo
-List<Worker> _getWorkersToKeep(
-  List<int> workersToRemove,
-  List<Worker> selectedWorkers,
-  List<WorkerGroup> selectedGroups,
-) {
-  List<Worker> workersToKeep = [];
-
-  for (Worker worker in selectedWorkers) {
-    // Si el trabajador no está en el grupo eliminado o está en otro grupo, mantenerlo
-    if (!workersToRemove.contains(worker.id) ||
-        selectedGroups.any((g) => g.workers.contains(worker.id))) {
-      workersToKeep.add(worker);
-    }
-  }
-
-  return workersToKeep;
-}
-
 // Sincronizar la eliminación de un grupo con el backend
 void _syncGroupDeletionWithBackend(
   BuildContext context,
@@ -171,10 +131,15 @@ void _syncGroupDeletionWithBackend(
       builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
+    // Crear los datos del grupo a eliminar
+    Map<String, List<int>> data = {
+      group.id.toString(): group.workers,
+    };
+
     // Llamar al servicio de backend para eliminar el grupo
     try {
       assignmentsProvider
-          .removeGroupFromAssignment(group.workers, context, assignmentId)
+          .removeGroupFromOperation(data, context, assignmentId)
           .then((_) {
         // Cerrar el indicador de carga
         Navigator.of(context, rootNavigator: true).pop();
@@ -192,30 +157,5 @@ void _syncGroupDeletionWithBackend(
       // Mostrar mensaje de error
       showErrorToast(context, "Error al eliminar el grupo: $e");
     }
-  }
-}
-
-// Notificar a componentes relacionados sobre cambios
-void _notifyRelatedComponents(
-  BuildContext context,
-  List<Worker> workersToKeep,
-  List<WorkerGroup> selectedGroups,
-  Function(List<Worker>) onWorkersChanged,
-  Function(List<WorkerGroup>)? onGroupsChanged,
-) {
-  // Buscar en AddAssignmentDialog para notificar sobre el cambio de grupos
-  final addAssignmentDialog =
-      context.findAncestorStateOfType<AddOperationDialogState>();
-
-  if (addAssignmentDialog != null) {
-    // Actualizar los grupos en el diálogo y recalcular horarios
-    addAssignmentDialog.updateSelectedGroups(selectedGroups);
-  }
-
-  // Notificar al padre sobre el cambio en trabajadores y grupos
-  onWorkersChanged(workersToKeep);
-
-  if (onGroupsChanged != null) {
-    onGroupsChanged(selectedGroups);
   }
 }

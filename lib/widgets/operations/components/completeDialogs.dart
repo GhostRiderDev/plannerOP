@@ -70,7 +70,7 @@ void showCompletionDialog({
 
                           endTimeToSave ??= currentTime;
 
-                          final success = await provider.completeAssignment(
+                          final success = await provider.completeOperation(
                               assignment.id ?? 0,
                               assignment.endDate ?? now,
                               endTimeToSave,
@@ -360,8 +360,7 @@ void showIndividualCompletionDialog(BuildContext context, Operation assignment,
                           );
 
                           // Llamar a API para completar operación individual
-                          final success =
-                              await provider.completeGroupOrIndividual(
+                          final success = await provider.completeGroup(
                             completedAssignment,
                             [worker],
                             "worker_${worker.id}",
@@ -458,7 +457,6 @@ void showGroupCompletionDialog(
   bool isProcessing = false;
   DateTime selectedDate = DateTime.now();
   TimeOfDay selectedTime = TimeOfDay.now();
-  debugPrint("GroupId $groupId");
 
   // Formatear fecha y hora para mostrar
   String formattedDate = DateFormat('dd/MM/yyyy').format(selectedDate);
@@ -645,8 +643,7 @@ void showGroupCompletionDialog(
                           );
 
                           // Llamar a API para completar operación grupal
-                          final success =
-                              await provider.completeGroupOrIndividual(
+                          final success = await provider.completeGroup(
                             completedAssignment,
                             workers,
                             groupId,

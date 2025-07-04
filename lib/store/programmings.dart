@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:plannerop/core/model/programming.dart';
 import 'package:plannerop/services/programmings/programmings.dart';
+import 'package:provider/provider.dart';
 
 class ProgrammingsProvider extends ChangeNotifier {
   final ProgrammingsService _programmingsService = ProgrammingsService();
   List<Programming> _programmings = [];
+  List<Programming> _overdueProgrammings = [];
   bool _isLoading = false;
   String? _error;
 
@@ -12,7 +14,40 @@ class ProgrammingsProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  // NUEVO MÉTODO: Actualizar estado de una programación
+  List<Programming> get overdueProgrammings => _overdueProgrammings;
+  int get overdueCount => _overdueProgrammings.length;
+  bool get hasOverdueProgrammings => _overdueProgrammings.isNotEmpty;
+
+  // Método que se llama cada vez que se cargan programaciones
+  void _checkForOverdueProgrammings() {
+    final now = DateTime.now();
+    _overdueProgrammings = _programmings.where((programming) {
+      // Solo programaciones no asignadas
+      if (programming.status != 'UNASSIGNED') return false;
+
+      try {
+        final programmingDateTime =
+            _combineDateAndTime(programming.dateStart, programming.timeStart);
+        return programmingDateTime.isBefore(now);
+      } catch (e) {
+        return false;
+      }
+    }).toList();
+
+    // Notificar cambios
+    notifyListeners();
+  }
+
+  DateTime _combineDateAndTime(String dateStr, String timeStr) {
+    final date = DateTime.parse(dateStr);
+    final timeParts = timeStr.split(':');
+    final hours = int.parse(timeParts[0]);
+    final minutes = int.parse(timeParts[1]);
+
+    return DateTime(date.year, date.month, date.day, hours, minutes);
+  }
+
+  // Actualizar estado de una programación
   Future<bool> updateProgrammingStatus(
       int programmingId, String newStatus, BuildContext context) async {
     try {
@@ -62,17 +97,27 @@ class ProgrammingsProvider extends ChangeNotifier {
     });
 
     try {
-      final programmings =
+      final programmingsToday =
           await _programmingsService.getProgrammingsByDate(date, context);
 
+      final programmingsTomorrow =
+          await _programmingsService.getProgrammingsByDate(
+              DateTime.now()
+                  .add(const Duration(days: 1))
+                  .toIso8601String()
+                  .split('T')[0],
+              context);
+
       // Asegurarse de que estemos fuera del ciclo de construcción
-      _programmings = programmings;
+      _programmings = [...programmingsToday, ...programmingsTomorrow];
 
       // Usar Future.microtask también para la actualización final
       Future.microtask(() {
         _isLoading = false;
         notifyListeners();
       });
+
+      _checkForOverdueProgrammings();
     } catch (e) {
       _error = 'Error al obtener programaciones: $e';
 
@@ -83,7 +128,7 @@ class ProgrammingsProvider extends ChangeNotifier {
     }
   }
 
-  // NUEVO MÉTODO: Buscar programación por ID
+  //  Buscar programación por ID
   Future<Programming?> fetchProgrammingById(
       int programmingId, BuildContext context) async {
     try {
@@ -105,7 +150,7 @@ class ProgrammingsProvider extends ChangeNotifier {
     }
   }
 
-  // NUEVO MÉTODO: Refrescar programaciones forzadamente
+  //  Refrescar programaciones forzadamente
   Future<void> refreshProgrammings(BuildContext context,
       {String? specificDate}) async {
     // debugPrint('Refrescando programaciones del cliente...');
@@ -119,15 +164,20 @@ class ProgrammingsProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final programmings = await _programmingsService.getProgrammingsByDate(
-          dateToFetch, context);
+      final programmingsToday = await _programmingsService
+          .getProgrammingsByDate(dateToFetch, context);
+      final programmingsTomorrow =
+          await _programmingsService.getProgrammingsByDate(
+              DateTime.now()
+                  .add(const Duration(days: 1))
+                  .toIso8601String()
+                  .split('T')[0],
+              context);
 
       // Limpiar la lista actual y cargar nuevas programaciones
       _programmings.clear();
-      _programmings.addAll(programmings);
-
-      debugPrint(
-          'Programaciones refrescadas: ${_programmings.length} encontradas');
+      _programmings.addAll(programmingsToday);
+      _programmings.addAll(programmingsTomorrow);
     } catch (e) {
       _error = 'Error al refrescar programaciones: $e';
       debugPrint('Error al refrescar programaciones: $e');
@@ -148,7 +198,7 @@ class ProgrammingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // NUEVO MÉTODO: Limpiar caché
+  //  Limpiar caché
   void clearCache() {
     _programmings.clear();
     notifyListeners();

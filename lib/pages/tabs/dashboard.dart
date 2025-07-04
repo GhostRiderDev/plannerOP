@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:plannerop/hooks/loaders/loader.dart';
-import 'package:plannerop/store/areas.dart';
 import 'package:plannerop/store/operations.dart';
 import 'package:plannerop/utils/toast.dart';
 import 'package:plannerop/widgets/dashboard/quickActions.dart';
 import 'package:plannerop/widgets/dashboard/recentOps.dart';
-import 'package:plannerop/store/workers.dart';
 import 'package:provider/provider.dart';
 
 class DashboardTab extends StatefulWidget {
@@ -25,7 +23,6 @@ class _DashboardTabState extends State<DashboardTab> {
   bool _isLoadingFaults = false;
   bool _isLoadingChargers = false;
   bool _isLoadingClientProgramming = false;
-
   // Variable para controlar si es la primera carga
   bool _isInitialLoad = true;
 
@@ -58,26 +55,26 @@ class _DashboardTabState extends State<DashboardTab> {
 
       // Cargar todos los datos en paralelo
       await Future.wait([
+        loadTask(
+          () => mounted,
+          setState,
+          _isLoadingTasks,
+          context,
+        ),
         checkAndLoadWorkersIfNeeded(
-          mounted,
+          () => mounted,
           setState,
           _isLoadingWorkers,
           context,
         ),
         loadAreas(
-          mounted,
+          () => mounted,
           setState,
           _isLoadingAreas,
           context,
         ),
-        loadTask(
-          mounted,
-          setState,
-          _isLoadingTasks,
-          context,
-        ),
         loadClients(
-          mounted,
+          () => mounted,
           setState,
           _isLoadingClients,
           context,
@@ -113,7 +110,7 @@ class _DashboardTabState extends State<DashboardTab> {
           },
         ),
         loadClientProgramming(
-            mounted, setState, _isLoadingClientProgramming, context,
+            () => mounted, setState, _isLoadingClientProgramming, context,
             forceRefresh: forceRefresh)
       ]).catchError((error) {
         debugPrint('Error durante la carga en paralelo: $error');
@@ -270,7 +267,7 @@ class _DashboardTabState extends State<DashboardTab> {
                           Icons.pending_actions_outlined,
                           'Pendientes',
                           Provider.of<OperationsProvider>(context)
-                              .pendingAssignments
+                              .pendingOperations
                               .length
                               .toString()),
                       // Contador de operaciones en curso
@@ -279,7 +276,7 @@ class _DashboardTabState extends State<DashboardTab> {
                           Icons.directions_run,
                           'En Curso',
                           Provider.of<OperationsProvider>(context)
-                              .inProgressAssignments
+                              .inProgressOperations
                               .length
                               .toString()),
                       // Contador de asignaciones finalizadas
@@ -288,7 +285,7 @@ class _DashboardTabState extends State<DashboardTab> {
                           Icons.check_circle_outline,
                           'Finalizadas',
                           Provider.of<OperationsProvider>(context)
-                              .completedAssignments
+                              .completedOperations
                               .where((a) =>
                                   a.endDate?.month == DateTime.now().month &&
                                   a.endDate?.day == DateTime.now().day &&

@@ -6,6 +6,7 @@ import 'package:plannerop/store/chargersOp.dart';
 import 'package:plannerop/store/clients.dart';
 import 'package:plannerop/store/faults.dart';
 import 'package:plannerop/store/feedings.dart';
+import 'package:plannerop/store/incapacities.dart';
 import 'package:plannerop/store/operations.dart';
 import 'package:plannerop/store/programmings.dart';
 import 'package:plannerop/store/task.dart';
@@ -37,6 +38,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => WorkerGroupsProvider()),
         ChangeNotifierProvider(create: (_) => FeedingProvider()),
         ChangeNotifierProvider(create: (_) => ProgrammingsProvider()),
+        ChangeNotifierProvider(create: (_) => IncapacityProvider()),
       ],
       child: const App(),
     ),

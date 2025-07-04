@@ -5,6 +5,7 @@ import 'package:plannerop/core/model/operation.dart';
 import 'package:plannerop/core/model/programming.dart';
 import 'package:plannerop/core/model/user.dart';
 import 'package:plannerop/core/model/workerGroup.dart';
+import 'package:plannerop/mapper/operation.dart';
 import 'package:plannerop/store/operations.dart';
 import 'package:plannerop/store/chargersOp.dart';
 import 'package:plannerop/store/clients.dart';
@@ -73,11 +74,11 @@ Widget _buildProgrammingDetailCard(Programming programming) {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: _getProgrammingStatusColor(programming.status),
+                color: getStatusColor(programming.status),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                _getProgrammingStatusText(programming.status),
+                getOperationStatusText(programming.status),
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
@@ -146,38 +147,6 @@ Widget _buildProgrammingDetailRow(String label, String value) {
   );
 }
 
-// Función para obtener el color según el estado de la programación
-Color _getProgrammingStatusColor(String status) {
-  switch (status.toUpperCase()) {
-    case 'UNASSIGNED':
-      return Colors.orange;
-    case 'ASSIGNED':
-      return Colors.blue;
-    case 'COMPLETED':
-      return Colors.green;
-    case 'CANCELLED':
-      return Colors.red;
-    default:
-      return Colors.grey;
-  }
-}
-
-// Función para obtener el texto del estado en español
-String _getProgrammingStatusText(String status) {
-  switch (status.toUpperCase()) {
-    case 'UNASSIGNED':
-      return 'Sin Asignar';
-    case 'ASSIGNED':
-      return 'Asignada';
-    case 'COMPLETED':
-      return 'Completada';
-    case 'CANCELLED':
-      return 'Cancelada';
-    default:
-      return status;
-  }
-}
-
 /// Shows assignment details in a modal bottom sheet
 void showOperationDetails({
   required BuildContext context,
@@ -199,7 +168,6 @@ void showOperationDetails({
   // Event handlers
   VoidCallback? onClose,
 }) {
-  debugPrint("Groups: ${assignment.groups}");
   // Get in-charge users
   final inChargersFormat =
       Provider.of<ChargersOpProvider>(context, listen: false)
@@ -227,7 +195,10 @@ void showOperationDetails({
       if (assignment.endDate != null)
         buildDetailRow('Fecha de finalización',
             DateFormat('dd/MM/yyyy').format(assignment.endDate!)),
-      buildDetailRow('Zona', 'Zona ${assignment.zone}'),
+      if (assignment.zone != 0 && assignment.zone != null)
+        buildDetailRow('Zona', 'Zona ${assignment.zone}'),
+      if (assignment.zone == 0 || assignment.zone == null)
+        buildDetailRow('Zona', 'N/A'),
       if (assignment.motorship != null && assignment.motorship!.isNotEmpty)
         buildDetailRow('Motonave', assignment.motorship!),
 
@@ -340,17 +311,19 @@ void showOperationDetails({
                           const SizedBox(height: 20),
                         ],
 
-                        // Groups section with enhanced support
-                        buildGroupsSection(
-                          context,
-                          assignment.groups,
-                          'Grupos de trabajo',
-                          assignment: assignment,
-                          alimentacionStatus: alimentacionStatus,
-                          foods: foods,
-                          onAlimentacionChanged: onAlimentacionChanged,
-                          setState: setState,
-                        ),
+                        if (assignment.status == 'PENDING') ...[
+                          // Groups section with enhanced support
+                          buildGroupsSection(
+                            context,
+                            assignment.groups,
+                            'Grupos de trabajo',
+                            assignment: assignment,
+                            alimentacionStatus: alimentacionStatus,
+                            foods: foods,
+                            onAlimentacionChanged: onAlimentacionChanged,
+                            setState: setState,
+                          ),
+                        ],
 
                         // In-charges section
                         if (inChargersFormat.isNotEmpty) ...[
@@ -454,21 +427,6 @@ Widget buildDetailRow(String label, String value) {
   );
 }
 
-Color getStatusColor(String status) {
-  switch (status.toUpperCase()) {
-    case 'PENDING':
-      return Colors.orange;
-    case 'INPROGRESS':
-      return Colors.blue;
-    case 'COMPLETED':
-      return Colors.green;
-    case 'CANCELLED':
-      return Colors.red;
-    default:
-      return Colors.grey;
-  }
-}
-
 // Método para mostrar el diálogo de cancelación (agregarlo si no existe)
 void showCancelDialog(
     BuildContext context, Operation assignment, OperationsProvider provider) {
@@ -520,12 +478,14 @@ void showCancelDialog(
                           debugPrint('Cancelando operación ${assignment.id}');
 
                           // Aquí iría la llamada a la API para cancelar
-                          final success = await provider.updateAssignmentStatus(
-                              assignment.id ?? 0, 'CANCELED', context);
+                          await provider.updateOperation(
+                              id: assignment.id ?? 0,
+                              status: 'CANCELED',
+                              context: context);
 
                           Navigator.pop(dialogContext);
                           showSuccessToast(
-                              context, 'Asignación cancelada exitosamente');
+                              context, 'Operación cancelada exitosamente');
                         } catch (e) {
                           debugPrint('Error al cancelar operación: $e');
 
@@ -633,33 +593,96 @@ Widget buildNonEditableField({
   );
 }
 
-List<Widget> getServicesGroups(BuildContext context, List<WorkerGroup> groups) {
+Map<int, String> _servicesCache = {};
+
+Future<List<Widget>> getServicesGroups(
+    BuildContext context, List<WorkerGroup> groups) async {
   List<Widget> serviceWidgets = [];
   for (var group in groups) {
-    serviceWidgets.add(getServiceGroup(context, group));
+    final serviceWidget = await getServiceGroup(context, group);
+    if (serviceWidget != null) {
+      serviceWidgets.add(serviceWidget);
+    }
   }
   return serviceWidgets;
 }
 
-Widget getServiceGroup(BuildContext context, WorkerGroup group) {
-  final serviceProvider = Provider.of<TasksProvider>(context, listen: false);
-  final service = serviceProvider.getTaskNameByIdService(group.serviceId);
+Future<Widget?> getServiceGroup(BuildContext context, WorkerGroup group) async {
+  // ✅ VERIFICAR SI EL CONTEXT AÚN ES VÁLIDO
+  if (!context.mounted) {
+    debugPrint('Context no está montado, retornando widget por defecto');
+    return _buildDefaultServiceWidget(group);
+  }
 
+  try {
+    String serviceName;
+
+    // ✅ USAR CACHE PARA EVITAR LLAMADAS REPETIDAS
+    if (_servicesCache.containsKey(group.serviceId)) {
+      serviceName = _servicesCache[group.serviceId]!;
+    } else {
+      // ✅ VERIFICAR NUEVAMENTE ANTES DE ACCEDER AL PROVIDER
+      if (!context.mounted) {
+        return _buildDefaultServiceWidget(group);
+      }
+
+      final serviceProvider =
+          Provider.of<TasksProvider>(context, listen: false);
+      serviceName = await serviceProvider.getTaskNameByIdServiceAsync(
+          group.serviceId, context);
+
+      // Guardar en cache
+      _servicesCache[group.serviceId] = serviceName;
+    }
+
+    // ✅ VERIFICAR UNA VEZ MÁS ANTES DE RETORNAR EL WIDGET
+    if (!context.mounted) {
+      return _buildDefaultServiceWidget(group);
+    }
+
+    return Row(
+      children: [
+        Icon(
+          Icons.design_services,
+          size: 12,
+          color: const Color(0xFF3182CE),
+        ),
+        const SizedBox(width: 4),
+        Expanded(
+          child: Text(
+            serviceName,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2D3748),
+            ),
+          ),
+        ),
+      ],
+    );
+  } catch (e) {
+    debugPrint('Error en getServiceGroup: $e');
+    return _buildDefaultServiceWidget(group);
+  }
+}
+
+// ✅ WIDGET POR DEFECTO CUANDO NO SE PUEDE OBTENER EL SERVICIO
+Widget _buildDefaultServiceWidget(WorkerGroup group) {
   return Row(
     children: [
       Icon(
         Icons.design_services,
         size: 12,
-        color: const Color(0xFF3182CE),
+        color: const Color(0xFF718096), // Color más suave para indicar error
       ),
       const SizedBox(width: 4),
       Expanded(
         child: Text(
-          service,
+          'Servicio ${group.serviceId}', // Mostrar el ID como fallback
           style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF2D3748),
+            color: Color(0xFF718096),
           ),
         ),
       ),
@@ -676,27 +699,12 @@ Future<String?> getClientName(BuildContext context, int clientId) async {
 }
 
 // Método auxiliar para obtener el nombre del servicio
-String getServiceName(BuildContext context, int serviceId) {
+Future<String> getServiceName(BuildContext context, int serviceId) async {
   try {
     final serviceProvider = Provider.of<TasksProvider>(context, listen: false);
-    return serviceProvider.getTaskNameByIdService(serviceId);
+    return await serviceProvider.getTaskNameByIdServiceAsync(
+        serviceId, context);
   } catch (e) {
     return 'Servicio desconocido';
-  }
-}
-
-// Helper para obtener el ícono según el estado
-IconData getStatusIcon(String status) {
-  switch (status.toUpperCase()) {
-    case 'PENDING':
-      return Icons.pending_outlined;
-    case 'INPROGRESS':
-      return Icons.sync;
-    case 'COMPLETED':
-      return Icons.check_circle_outline;
-    case 'CANCELED':
-      return Icons.cancel_outlined;
-    default:
-      return Icons.pending_outlined;
   }
 }

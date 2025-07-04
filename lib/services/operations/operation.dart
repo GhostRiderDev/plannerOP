@@ -9,36 +9,27 @@ import 'package:plannerop/core/model/workerGroup.dart';
 import 'package:plannerop/dto/operations/createOperation.dart';
 import 'package:plannerop/store/auth.dart';
 import 'package:plannerop/store/workers.dart';
+import 'package:plannerop/utils/date.dart';
 import 'package:plannerop/utils/groups/groups.dart';
 import 'package:provider/provider.dart';
 
-class AssignmentService {
+class OperationService {
   final String API_URL = dotenv.get('API_URL');
 
   // Método para enviar operación al backend usando AuthProvider
-  Future<CreateOperationDto> createAssignment(
+  Future<CreateOperationDto> createOperation(
       Operation operation, BuildContext context) async {
     try {
       // Obtener token del AuthProvider
       final token =
           Provider.of<AuthProvider>(context, listen: false).accessToken;
 
-      // Recopilar todos los IDs de trabajadores que están en grupos
-      Set<int> workersInGroups = {};
-      for (var group in operation.groups) {
-        workersInGroups.addAll(group.workers);
-      }
-
-      // // Filtrar los trabajadores para solo incluir aquellos que no están en grupos
-      // List<int> individualWorkers =
-      //     operation.workers.map((worker) => worker.id).toList();
-
       // Crear el payload en el formato requerido por el backend
       final Map<String, dynamic> payload = {
         "status": operation.status.toUpperCase(),
         "zone": operation.zone,
         "motorShip": operation.motorship ?? "",
-        "dateStart": _formatDate(operation.date),
+        "dateStart": formatDate(operation.date),
         "timeStrat": operation.time,
         "id_user": operation.userId,
         "id_area": operation.areaId,
@@ -60,14 +51,12 @@ class AssignmentService {
       };
 
       if (operation.endDate != null) {
-        payload['dateEnd'] = _formatDate(operation.endDate!);
+        payload['dateEnd'] = formatDate(operation.endDate!);
       }
 
       if (operation.endTime != null) {
         payload['timeEnd'] = operation.endTime;
       }
-
-      // debugPrint('Enviando operación: ${jsonEncode(payload)}');
 
       var url = Uri.parse('$API_URL/operation');
       var response = await http.post(url,
@@ -95,13 +84,8 @@ class AssignmentService {
     }
   }
 
-  // Método auxiliar para dar formato a las fechas
-  String _formatDate(DateTime date) {
-    return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
-  }
-
-  // Metodo para obtener las asignaciones
-  Future<List<Operation>> fetchAssignments(BuildContext context) async {
+  // Metodo para obtener las operaciones
+  Future<List<Operation>> fetchOperations(BuildContext context) async {
     try {
       final token =
           Provider.of<AuthProvider>(context, listen: false).accessToken;
@@ -118,26 +102,6 @@ class AssignmentService {
         final jsonResponse = jsonDecode(response.body);
         List<Operation> operations = [];
         for (var operation in jsonResponse) {
-          // debugPrint('Asignación: $operation');
-
-          var mapWorkers = operation['workers'];
-          List<Worker> workersAssignment = [];
-
-          for (var worker in mapWorkers) {
-            var workerId = worker['id_worker'];
-            var workerObj = workers.firstWhere((w) => w.id == workerId,
-                orElse: () => Worker(
-                    name: "",
-                    area: "",
-                    phone: "",
-                    document: "",
-                    status: WorkerStatus.available,
-                    startDate: DateTime.now(),
-                    code: "",
-                    id: 0));
-            workersAssignment.add(workerObj);
-          }
-
           var operationObj = Operation.fromJson(operation, workers);
 
           operations.add(operationObj);
@@ -154,7 +118,7 @@ class AssignmentService {
     }
   }
 
-  Future<bool> updateStatusAssignment(
+  Future<bool> updateStatusOperation(
       int operationId, String status, BuildContext context) async {
     try {
       final token =
@@ -168,7 +132,6 @@ class AssignmentService {
           },
           body: jsonEncode(
               {"status": status == 'IN_PROGRESS' ? 'INPROGRESS' : status}));
-      // debugPrint('Actualizando estado de operación $status');
       if (response.statusCode == 200) {
         return true;
       } else {
@@ -183,7 +146,7 @@ class AssignmentService {
   }
 
   // Método para actualizar una operación existente
-  Future<bool> updateAssignment(
+  Future<bool> updateOperation(
       Operation operation, BuildContext context) async {
     try {
       // Obtener token del AuthProvider
@@ -197,25 +160,18 @@ class AssignmentService {
       // Crear el payload con los datos actualizados
       final Map<String, dynamic> payload = {
         "status": operation.status.toUpperCase(),
-        "dateStart": _formatDate(operation.date),
+        "dateStart": formatDate(operation.date),
         "timeStrat": operation.time,
-        // "workers": {
-        //   "connect":
-        //       operation.workers.map((worker) => {"id": worker.id}).toList()
-        // },
       };
 
       // Añadir campos opcionales si tienen valor
       if (operation.endDate != null) {
-        payload['dateEnd'] = _formatDate(operation.endDate!);
+        payload['dateEnd'] = formatDate(operation.endDate!);
       }
 
       if (operation.endTime != null && operation.endTime!.isNotEmpty) {
         payload['timeEnd'] = operation.endTime;
       }
-
-      // debugPrint(
-      // 'Actualizando operación ${operation.id}: ${jsonEncode(payload)}');
 
       var url = Uri.parse('$API_URL/operation/${operation.id}');
       var response = await http.patch(url,
@@ -238,158 +194,72 @@ class AssignmentService {
     }
   }
 
-  // Método para actualizar una operación existente
-  Future<bool> updateAssignmentToComplete(
-      Operation operation, BuildContext context) async {
-    try {
-      // Obtener token del AuthProvider
-      final token =
-          Provider.of<AuthProvider>(context, listen: false).accessToken;
-
-      if (operation.id == null) {
-        debugPrint('Error: ID de operación no proporcionado');
-        return false;
-      }
-      // Crear el payload con los datos actualizados
-      final Map<String, dynamic> payload = {
-        "status": operation.status.toUpperCase(),
-      };
-
-      // Añadir campos opcionales si tienen valor
-      if (operation.endDate != null) {
-        payload['dateEnd'] = _formatDate(operation.endDate!);
-      }
-
-      if (operation.endTime != null && operation.endTime!.isNotEmpty) {
-        payload['timeEnd'] = operation.endTime;
-      }
-
-      // debugPrint(
-      //     'Actualizando operación ${operation.id}: ${jsonEncode(payload)}');
-
-      var url = Uri.parse('$API_URL/operation/${operation.id}');
-      var response = await http.patch(url,
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Content-Type': 'application/json'
-          },
-          body: jsonEncode(payload));
-
-      if (response.statusCode == 200) {
-        return true;
-      } else {
-        debugPrint(
-            'Error al actualizar operación: ${response.statusCode} - ${response.body}');
-        return false;
-      }
-    } catch (e) {
-      debugPrint('Excepción al actualizar operación: $e');
-      return false;
-    }
-  }
-
-// Método para eliminar un grupo de una operación
-  Future<bool> removeGroupFromAssignment(
-      int operationId, BuildContext context, List<int> workerIds) async {
+// Método para eliminar trabajadores de grupos de una operación (uno por uno)
+  Future<bool> removeGroupFromOperation(int operationId, BuildContext context,
+      Map<String, List<int>> workersGroups) async {
     try {
       final token =
           Provider.of<AuthProvider>(context, listen: false).accessToken;
 
-      // Endpoint para eliminar un grupo específico de una operación
+      // Endpoint para eliminar trabajadores específicos de una operación
       var url = Uri.parse('$API_URL/operation/$operationId');
 
-      Map<String, dynamic> body = {
-        "workers": {
-          "disconnect": workerIds.map((id) => {"id": id}).toList()
+      bool allSuccessful = true;
+
+      // Iterar sobre cada grupo y cada trabajador
+      for (var entry in workersGroups.entries) {
+        final groupId = entry.key;
+        final workerIds = entry.value;
+
+        // Enviar una petición por cada trabajador
+        for (var workerId in workerIds) {
+          Map<String, dynamic> body = {
+            "workers": {
+              "disconnect": [
+                {"id_group": groupId, "id": workerId}
+              ]
+            }
+          };
+
+          debugPrint('Removiendo trabajador $workerId del grupo $groupId');
+          debugPrint('Body: ${jsonEncode(body)}');
+
+          var response = await http.patch(url,
+              headers: {
+                'Authorization': 'Bearer $token',
+                'Content-Type': 'application/json'
+              },
+              body: jsonEncode(body));
+
+          if (response.statusCode == 200 || response.statusCode == 204) {
+            debugPrint(
+                'Trabajador $workerId removido exitosamente del grupo $groupId');
+          } else {
+            debugPrint(
+                'Error al remover trabajador $workerId del grupo $groupId: ${response.statusCode} - ${response.body}');
+            allSuccessful = false;
+            // Opcional: Continuar con los demás trabajadores o hacer break aquí
+            // break; // Descomentar si quieres parar en el primer error
+          }
+
+          // Opcional: Añadir un pequeño delay entre peticiones para evitar sobrecargar el servidor
+          await Future.delayed(Duration(milliseconds: 100));
         }
-      };
-
-      var response = await http.patch(url,
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Content-Type': 'application/json'
-          },
-          body: jsonEncode(body));
-
-      if (response.statusCode == 200 || response.statusCode == 204) {
-        // debugPrint('Grupo eliminado con éxito');
-        return true;
-      } else {
-        debugPrint(
-            'Error al eliminar grupo: ${response.statusCode} - ${response.body}');
-        return false;
       }
+
+      return allSuccessful;
     } catch (e) {
-      debugPrint('Excepción al eliminar grupo: $e');
+      debugPrint('Excepción al eliminar trabajadores de grupos: $e');
       return false;
     }
   }
 
-  // Método para actualizar solo la hora de finalización de una operación
-  Future<bool> updateAssignmentEndTime(
-      String operationId, String endTime, BuildContext context) async {
-    try {
-      final token =
-          Provider.of<AuthProvider>(context, listen: false).accessToken;
-
-      var url = Uri.parse('$API_URL/operation/$operationId/end-time');
-      var response = await http.patch(url,
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Content-Type': 'application/json'
-          },
-          body: jsonEncode({"timeEnd": endTime}));
-
-      // debugPrint('Actualizando hora de finalización: $endTime');
-
-      if (response.statusCode == 200) {
-        // debugPrint(
-        //     'Hora de finalización actualizada con éxito: ${response.body}');
-        return true;
-      } else {
-        debugPrint(
-            'Error al actualizar hora de finalización: ${response.statusCode} - ${response.body}');
-        return false;
-      }
-    } catch (e) {
-      debugPrint('Excepción al actualizar hora de finalización: $e');
-      return false;
-    }
-  }
-
-  // Método para eliminar una operación
-  Future<bool> deleteAssignment(
-      String operationId, BuildContext context) async {
-    try {
-      final token =
-          Provider.of<AuthProvider>(context, listen: false).accessToken;
-
-      var url = Uri.parse('$API_URL/operation/$operationId');
-      var response =
-          await http.delete(url, headers: {'Authorization': 'Bearer $token'});
-
-      if (response.statusCode == 200 || response.statusCode == 204) {
-        // debugPrint('Asignación eliminada con éxito');
-        return true;
-      } else {
-        debugPrint(
-            'Error al eliminar operación: ${response.statusCode} - ${response.body}');
-        return false;
-      }
-    } catch (e) {
-      debugPrint('Excepción al eliminar operación: $e');
-      return false;
-    }
-  }
-
-// Modificación de fetchAssignmentsByStatus para evitar duplicados de trabajadores
-  Future<List<Operation>> fetchAssignmentsByStatus(
+// Modificación de fetchOperationsByStatus para evitar duplicados de trabajadores
+  Future<List<Operation>> fetchOperationsByStatus(
       BuildContext context, List<String> statusList) async {
     try {
-      // Verificaciones iniciales (sin cambios)
+      // Verificaciones iniciales
       if (!context.mounted) {
-        // debugPrint(
-        // 'Context no está montado, abortando fetchAssignmentsByStatus');
         return [];
       }
 
@@ -399,8 +269,6 @@ class AssignmentService {
           '$API_URL/operation/by-status?status=${statusList.join(",")}');
       var response =
           await http.get(url, headers: {'Authorization': 'Bearer $token'});
-
-      // debugPrint('Response: ${response.body}');
 
       if (!context.mounted) {
         debugPrint(
@@ -419,13 +287,11 @@ class AssignmentService {
         for (var operation in jsonResponse) {
           // Nuevo mapa para trabajadores finalizados
           Map<int, Worker> finishedWorkersMap = {};
-          debugPrint(
-              "Operacion: ${operation['id']}, Grupos: ${operation['workerGroups']?.length ?? 0}");
 
           // Lista para grupos de trabajadores
           List<WorkerGroup> operationGroups = [];
 
-          // PASO 2: Procesar los grupos de trabajadores
+          // Procesar los grupos de trabajadores
           if (operation['workerGroups'] != null &&
               operation['workerGroups'] is List) {
             var workerGroups = operation['workerGroups'] as List;
@@ -509,8 +375,6 @@ class AssignmentService {
                         // Añadir al mapa de finalizados si no existe ya
                         if (!finishedWorkersMap.containsKey(workerObj.id)) {
                           finishedWorkersMap[workerObj.id] = workerObj;
-                          // debugPrint(
-                          //     'Trabajador ${workerObj.id} (${workerObj.name}) clasificado como finalizado');
                         }
                       }
 
@@ -550,48 +414,6 @@ class AssignmentService {
             }
           }
 
-          // También, si operation tiene un campo finished_workers o similar, procesarlo aquí
-          if (operation['finishedWorkers'] != null &&
-              operation['finishedWorkers'] is List) {
-            var finishedWorkerData = operation['finishedWorkers'] as List;
-
-            for (var workerData in finishedWorkerData) {
-              final workerId = workerData['id'] ?? 0;
-              if (workerId == 0) continue;
-
-              try {
-                if (workers.isEmpty) continue;
-
-                var workerObj = workers.firstWhere((w) => w.id == workerId,
-                    orElse: () => Worker(
-                        name: "",
-                        area: "",
-                        phone: "",
-                        document: "",
-                        status: WorkerStatus.available,
-                        startDate: DateTime.now(),
-                        code: "",
-                        id: 0));
-
-                // Añadir al mapa de finalizados si no existe ya
-                if (workerObj.id != 0 &&
-                    !finishedWorkersMap.containsKey(workerObj.id)) {
-                  finishedWorkersMap[workerObj.id] = workerObj;
-                  // debugPrint(
-                  //     'Trabajador ${workerObj.id} añadido de finishedWorkers');
-                }
-              } catch (e) {
-                debugPrint(
-                    'Error al procesar trabajador finalizado ID $workerId: $e');
-              }
-            }
-          }
-
-          // DIAGNÓSTICO: Mostrar información sobre los trabajadores procesados
-          // debugPrint(
-          //     'Asignación ${operation['id']}: Trabajadores activos: ${workersMap.length}, finalizados: ${finishedWorkersMap.length}');
-          // debugPrint(
-          //     'Asignación ${operation['id']}: Grupos: ${operationGroups.length}');
           List<int> inChargers = [];
           var inChargeData =
               operation['inChargeOperation'] ?? operation['inCharge'] ?? [];
@@ -604,11 +426,7 @@ class AssignmentService {
 
           var operationObj = Operation(
             id: operation['id'],
-            // workers: workersMap.values.toList(),
-            workersFinished: finishedWorkersMap.values
-                .toList(), // Usar la lista de trabajadores finalizados
             area: operation['jobArea']['name'],
-            // task: operation['task']['name'],
             date: DateTime.parse(operation['dateStart']),
             time: operation['timeStrat'],
             status: operation['status'],
@@ -620,7 +438,6 @@ class AssignmentService {
             motorship: operation['motorShip'],
             userId: operation['id_user'],
             areaId: operation['jobArea']['id'],
-            // taskId: operation['task']['id'],
             clientId: operation['id_client'],
             inChagers: inChargers,
             groups: operationGroups,
@@ -651,7 +468,7 @@ class AssignmentService {
   }
 
   // Método para completar una operación
-  Future<bool> completeAssigment(
+  Future<bool> completeOperation(
     int operationId,
     String status,
     DateTime endDate,
@@ -665,7 +482,7 @@ class AssignmentService {
       var url = Uri.parse('$API_URL/operation/$operationId');
       var body = {
         'status': status,
-        'dateEnd': _formatDate(endDate),
+        'dateEnd': formatDate(endDate),
         'timeEnd': endTime,
       };
 
@@ -677,8 +494,6 @@ class AssignmentService {
           body: jsonEncode(body));
 
       if (response.statusCode == 200) {
-        // debugPrint('Asignación completada con éxito');
-        // debugPrint("Response200: ${response.body}");
         return true;
       } else {
         debugPrint(
@@ -691,8 +506,8 @@ class AssignmentService {
     }
   }
 
-// Añade este método a AssignmentService en services/operations/operation.dart
-  Future<bool> completePartialAssignment(
+// Método para completar una un grupo de trabajadores o individual de una operación
+  Future<bool> completeGroupOperation(
     int operationId,
     List<int> workerIds,
     String groupId,
@@ -712,9 +527,9 @@ class AssignmentService {
           "update": [
             {
               "workerIds": workerIds,
-              "dateEnd": _formatDate(endDate),
+              "dateEnd": formatDate(endDate),
               "timeEnd": endTime,
-              "dateStart": _formatDate(startDate),
+              "dateStart": formatDate(startDate),
               "timeStart": startTime,
               "id_group": groupId
             }
@@ -736,7 +551,6 @@ class AssignmentService {
       } else {
         debugPrint(
             'Error al completar parcialmente: ${response.statusCode} - ${response.body}');
-        // Si la API no soporta esta operación, aún así marcar como exitoso localmente
         if (response.statusCode == 404) {
           debugPrint(
               'API no soporta completado parcial, marcando como exitoso localmente');
@@ -752,7 +566,7 @@ class AssignmentService {
   }
 
 // Método para conectar nuevos trabajadores a una operación existente
-  Future<bool> connectWorkersToAssignment(
+  Future<bool> connectWorkersToOperation(
       int operationId,
       List<int> individualWorkerIds,
       List<Map<String, dynamic>> groupsToConnect,

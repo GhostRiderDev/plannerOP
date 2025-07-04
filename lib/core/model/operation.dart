@@ -37,10 +37,8 @@ class Operation {
 
   Operation({
     this.id,
-    // required this.workers,
     required this.inChagers,
     required this.area,
-    // required this.task,
     required this.date,
     required this.time,
     this.endTime,
@@ -52,22 +50,18 @@ class Operation {
     this.deletedWorkers = const [],
     required this.userId,
     required this.areaId,
-    // required this.taskId,
     required this.clientId,
     this.id_clientProgramming,
     this.createdAt,
     this.updatedAt,
     this.groups = const [],
     this.workersFinished = const [],
-    // required this.groups,
   });
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      // 'workers': workers.map((worker) => worker.id).toList(),
       'area': area,
-      // 'task': task,
       'date': date.toIso8601String(),
       'time': time,
       'status': status,
@@ -77,7 +71,6 @@ class Operation {
       'motorship': motorship,
       'userId': userId,
       'areaId': areaId,
-      // 'taskId': taskId,
       'clientId': clientId,
       'inChargedIds': inChagers,
       'id_clientProgramming': id_clientProgramming,
@@ -87,9 +80,7 @@ class Operation {
   static Operation fromJson(Map<String, dynamic> json, List<Worker> workers) {
     return Operation(
       id: json['id'],
-      // workers: workers,
       area: json['jobArea']['name'],
-      // task: json['task']['name'],
       date: DateTime.parse(json['dateStart']),
       time: json['timeStrat'],
       status: json['status'],
@@ -99,7 +90,6 @@ class Operation {
       motorship: json['motorship'],
       userId: json['id_user'],
       areaId: json['jobArea']['id'],
-      // taskId: json['task']['id'],
       clientId: json['id_client'],
       inChagers: json['inChargedIds'],
       createdAt: DateTime.parse(json['createAt']),

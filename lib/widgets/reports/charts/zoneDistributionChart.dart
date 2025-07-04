@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:plannerop/core/model/operation.dart';
+import 'package:plannerop/mapper/operation.dart';
 import 'package:plannerop/utils/charts/baseChart.dart';
 import 'package:plannerop/utils/charts/chartData.dart';
 import 'package:plannerop/utils/charts/info.dart';
 import 'package:plannerop/utils/charts/legend.dart';
 import 'package:plannerop/utils/charts/painters.dart';
-import 'package:plannerop/utils/charts/translate.dart';
 
 class ZoneDistributionChart extends BaseChart<ZoneData> {
   const ZoneDistributionChart({
@@ -72,7 +72,7 @@ class _ZoneDistributionChartState
         }
 
         if (widget.status != null && widget.status!.isNotEmpty) {
-          String normalizedStatus = normalizeStatus(assignment.status);
+          String normalizedStatus = getOperationStatusText(assignment.status);
           if (normalizedStatus != widget.status) return false;
         }
 

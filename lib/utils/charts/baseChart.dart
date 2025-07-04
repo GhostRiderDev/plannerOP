@@ -3,9 +3,6 @@ import 'package:plannerop/core/model/operation.dart';
 import 'package:plannerop/services/operations/operationReports.dart';
 import 'package:plannerop/utils/charts/mapper.dart';
 
-import 'package:provider/provider.dart';
-import 'package:plannerop/store/operations.dart';
-
 abstract class BaseChart<T> extends StatefulWidget {
   final DateTime startDate;
   final DateTime endDate;

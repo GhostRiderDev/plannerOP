@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
-import 'package:intl/intl.dart';
-import 'package:plannerop/core/model/user.dart';
 import 'package:plannerop/store/areas.dart';
 import 'package:plannerop/store/chargersOp.dart';
 import 'package:plannerop/store/feedings.dart';
 import 'package:plannerop/utils/operations.dart' hide buildDetailRow;
-import 'package:plannerop/utils/feedingUtils.dart';
-import 'package:plannerop/utils/groups/groups.dart';
 import 'package:plannerop/utils/toast.dart';
 import 'package:plannerop/widgets/operations/components/OperationCard.dart';
-import 'package:plannerop/widgets/operations/components/workers/buildWorkerItem.dart';
-import 'package:plannerop/widgets/operations/update/editOperationForm.dart';
+import 'package:plannerop/widgets/operations/components/feedingAware.dart';
+import 'package:plannerop/widgets/operations/edit/editOperationForm.dart';
 import 'package:provider/provider.dart';
 import 'package:plannerop/store/operations.dart';
 import 'package:plannerop/widgets/operations/components/utils/emptyState.dart';
@@ -65,7 +61,7 @@ class _ActiveOperationsViewState extends State<ActiveOperationsView> {
           );
         }
 
-        var activeAssignments = assignmentsProvider.inProgressAssignments;
+        var activeAssignments = assignmentsProvider.inProgressOperations;
 
         // Ordenar y traer las más recientes
         activeAssignments.sort((a, b) => b.date.compareTo(a.date));
@@ -94,7 +90,7 @@ class _ActiveOperationsViewState extends State<ActiveOperationsView> {
         return RefreshIndicator(
           onRefresh: () async {
             // Si tuviéramos una recarga desde API la llamaríamos aquí
-            await assignmentsProvider.refreshActiveAssignments(context);
+            await assignmentsProvider.refreshActiveOperations(context);
           },
           child: Column(
             children: [
@@ -192,84 +188,36 @@ class _ActiveOperationsViewState extends State<ActiveOperationsView> {
     );
   }
 
-  List<Operation> _applyFilters(List<Operation> assignments) {
-    return assignments.where((assignment) {
-      // Filtrar por texto de búsqueda
-      bool matchesSearch = true;
-      // if (widget.searchQuery.isNotEmpty) {
-      //   final matchesTask = assignment.task
-      //       .toLowerCase()
-      //       .contains(widget.searchQuery.toLowerCase());
-      //   final matchesWorker = assignment.workers.any((worker) => worker.name
-      //       .toString()
-      //       .toLowerCase()
-      //       .contains(widget.searchQuery.toLowerCase()));
-      //   matchesSearch = matchesTask || matchesWorker;
-      // }
-
-      // Filtrar por área seleccionada
-      bool matchesArea = true;
-      if (_selectedArea != null && _selectedArea!.isNotEmpty) {
-        matchesArea = assignment.area == _selectedArea;
-      }
-
-      // Filtrar por supervisor seleccionado
-      bool matchesSupervisor = true;
-      if (_selectedSupervisorId != null) {
-        matchesSupervisor =
-            assignment.inChagers.contains(_selectedSupervisorId);
-      }
-
-      return matchesSearch && matchesArea && matchesSupervisor;
-    }).toList();
-  }
-
-  void _showAssignmentDetails(BuildContext context, Operation assignment) {
+  void _showAssignmentDetails(
+      BuildContext context, Operation assignment) async {
     final assignmentsProvider =
         Provider.of<OperationsProvider>(context, listen: false);
-    final feedingProvider =
-        Provider.of<FeedingProvider>(context, listen: false);
 
-    // Cargar datos de alimentación para esta operación
-    feedingProvider.loadFeedingStatusForOperation(assignment.id ?? 0, context);
-
-    List<String> foods = FeedingUtils.determinateFoodsWithDeliveryStatus(
-        assignment.time, assignment.endTime, context);
-
-    bool tieneDerechoAlimentacion = foods.isNotEmpty;
-
-    // Usar la función unificada showOperationDetails
+    // ✅ MOSTRAR DIÁLOGO INMEDIATAMENTE SIN ESPERAR DATOS DE ALIMENTACIÓN
     showOperationDetails(
       context: context,
       assignment: assignment,
       statusColor: const Color(0xFF38A169),
       statusText: 'EN CURSO',
-
-      // Configuración específica para grupos activos
       alimentacionStatus: alimentacionStatus,
-      foods: foods,
-      onAlimentacionChanged: tieneDerechoAlimentacion
-          ? (workerId, entregada) {
-              if (foods.isNotEmpty) {
-                feedingProvider.markFeeding(
-                  operationId: assignment.id ?? 0,
-                  workerId: workerId,
-                  foodType: foods[0],
-                  context: context,
-                );
-              }
-            }
-          : null,
+      foods: [], // Se calculará en el FutureBuilder
       setState: () => setState(() {}),
 
-      // Workers builder para trabajadores eliminados
+      // ✅ USAR FUTUREBUILDER PARA CARGAR ALIMENTACIÓN SIN BLOQUEAR LA UI
       workersBuilder: (assignment, context) {
-        return assignment.deletedWorkers.isNotEmpty
-            ? _buildDeletedWorkersSection(assignment)
-            : const SizedBox();
+        return FeedingAwareWidget(
+          operationId: assignment.id ?? 0,
+          assignment: assignment,
+          alimentacionStatus: alimentacionStatus,
+          onAlimentacionChanged: (workerId, entregada) {
+            setState(() {
+              alimentacionStatus[workerId] = entregada;
+            });
+          },
+        );
       },
 
-      // Action buttons
+      // Action buttons (sin cambios)
       actionsBuilder: (context, assignment) => [
         Expanded(
           child: NeumorphicButton(
@@ -325,7 +273,7 @@ class _ActiveOperationsViewState extends State<ActiveOperationsView> {
         ),
       ],
 
-      // Floating action button (cancelar)
+      // Floating action button (sin cambios)
       floatingActionBuilder: (context, assignment) => NeumorphicButton(
         style: NeumorphicStyle(
           depth: 4,
@@ -348,30 +296,6 @@ class _ActiveOperationsViewState extends State<ActiveOperationsView> {
     );
   }
 
-  Widget _buildDeletedWorkersSection(Operation assignment) {
-    return assignment.deletedWorkers.map(
-      (worker) {
-        bool entregada = alimentacionStatus[worker.id] ?? false;
-        return buildWorkerItem(worker, context,
-            alimentacionEntregada: entregada,
-            onAlimentacionChanged: (newValue) {
-          setState(() {
-            alimentacionStatus[worker.id] = newValue;
-          });
-        });
-      },
-    ).isNotEmpty
-        ? _buildDetailsSection(
-            title: 'Trabajadores eliminados',
-            children: assignment.deletedWorkers.map(
-              (worker) {
-                return buildWorkerItem(worker, context, isDeleted: true);
-              },
-            ).toList(),
-          )
-        : const SizedBox();
-  }
-
   void _showEditDialog(
       BuildContext context, Operation assignment, OperationsProvider provider) {
     showDialog(
@@ -389,8 +313,14 @@ class _ActiveOperationsViewState extends State<ActiveOperationsView> {
             child: EditOperationForm(
               assignment: assignment,
               onSave: (updatedAssignment) {
-                provider.updateAssignment(updatedAssignment, context);
-                showSuccessToast(context, 'Asignación actualizada');
+                provider.updateOperation(
+                  id: updatedAssignment.id!,
+                  status: updatedAssignment.status,
+                  endDate: updatedAssignment.endDate,
+                  endTime: updatedAssignment.endTime,
+                  context: context,
+                );
+                showSuccessToast(context, 'Operación actualizada');
                 Navigator.pop(context);
               },
               onCancel: () => Navigator.pop(context),
@@ -398,25 +328,6 @@ class _ActiveOperationsViewState extends State<ActiveOperationsView> {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildDetailsSection(
-      {required String title, required List<Widget> children}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF2D3748),
-          ),
-        ),
-        const SizedBox(height: 12),
-        ...children,
-      ],
     );
   }
 }

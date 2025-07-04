@@ -6,6 +6,9 @@ class FeedingProvider extends ChangeNotifier {
   // Mapa de alimentación {operationId: {workerId: {type: bool}}}
   Map<int, Map<int, Map<String, bool>>> _feedingStatus = {};
   bool _isLoading = false;
+  final Set<int> _loadedOperations = {};
+  final Map<int, DateTime> _lastLoadedTime = {};
+  final Duration _cacheValidDuration = const Duration(minutes: 5);
 
   // Getters
   Map<int, Map<int, Map<String, bool>>> get feedingStatus => _feedingStatus;
@@ -117,18 +120,36 @@ class FeedingProvider extends ChangeNotifier {
     return true;
   }
 
-  // cargar alimentaciones de una operación específica - MÉTODO CORREGIDO
   Future<void> loadFeedingStatusForOperation(
       int operationId, BuildContext context) async {
-    _isLoading = true;
-    notifyListeners();
+    //  VERIFICAR CACHE MÁS ESTRICTO
+    if (_loadedOperations.contains(operationId)) {
+      final lastLoaded = _lastLoadedTime[operationId];
+      if (lastLoaded != null &&
+          DateTime.now().difference(lastLoaded) < _cacheValidDuration) {
+        return; // Usar datos en cache SIN notificar cambios
+      }
+    }
+
+    //  EVITAR NOTIFICACIONES DURANTE LA CONSTRUCCIÓN
+    bool wasLoading = _isLoading;
+    bool hadData = _feedingStatus.containsKey(operationId);
+
+    // Solo marcar como loading si no estaba cargando y no hay datos
+    if (!wasLoading && !hadData) {
+      _isLoading = true;
+      //  USAR SCHEDULEMICROTASK PARA EVITAR NOTIFICAR DURANTE BUILD
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          notifyListeners();
+        }
+      });
+    }
 
     try {
       final feedingService = FeedingService();
       final List<dynamic> feedingData =
           await feedingService.getFeedingsForOperation(operationId, context);
-
-      debugPrint("Feeding data: $feedingData");
 
       // Inicializar la estructura de datos para esta operación
       _feedingStatus[operationId] = {};
@@ -137,24 +158,59 @@ class FeedingProvider extends ChangeNotifier {
       for (var feeding in feedingData) {
         int workerId = feeding['id_worker'];
         String type = feeding['type'];
-
-        // CORREGIDO: Convertir tipo de API a formato de UI usando el método correcto
         String foodType = _getFeedingTypeFromApi(type);
 
-        // Inicializar la estructura si no existe
         _feedingStatus[operationId]![workerId] ??= {};
-
-        // Marcar como entregado
         _feedingStatus[operationId]![workerId]![foodType] = true;
       }
 
-      _isLoading = false;
-      notifyListeners();
+      // Marcar como cargado con timestamp
+      _loadedOperations.add(operationId);
+      _lastLoadedTime[operationId] = DateTime.now();
+
+      //  FINALIZAR LOADING Y NOTIFICAR SOLO UNA VEZ
+      if (!wasLoading && !hadData) {
+        _isLoading = false;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            notifyListeners();
+          }
+        });
+      }
     } catch (e) {
       debugPrint('Error cargando alimentación: $e');
-      _isLoading = false;
-      notifyListeners();
+      if (!wasLoading && !hadData) {
+        _isLoading = false;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            notifyListeners();
+          }
+        });
+      }
     }
+  }
+
+  //  AGREGAR GETTER PARA VERIFICAR SI EL PROVIDER ESTÁ MONTADO
+  bool get mounted => hasListeners;
+
+  //  MÉTODO PARA VERIFICAR SI HAY DATOS CARGADOS
+  bool hasFeedingDataForOperation(int operationId) {
+    return _feedingStatus.containsKey(operationId) &&
+        _loadedOperations.contains(operationId);
+  }
+
+  // Método para forzar recarga si es necesario
+  Future<void> forceLoadFeedingStatusForOperation(
+      int operationId, BuildContext context) async {
+    _loadedOperations.remove(operationId);
+    _lastLoadedTime.remove(operationId);
+    await loadFeedingStatusForOperation(operationId, context);
+  }
+
+  // Limpiar cache cuando sea necesario
+  void clearCache() {
+    _loadedOperations.clear();
+    _lastLoadedTime.clear();
   }
 
   // Verificar si una comida específica está marcada para un trabajador

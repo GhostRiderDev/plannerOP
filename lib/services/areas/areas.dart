@@ -18,6 +18,7 @@ class AreaService {
       // debugPrint(jsonResponse.toString());
       List<Area> areas = [];
       for (var area in jsonResponse) {
+        if (area['status'] != 'ACTIVE') continue; // Filtrar áreas inactivas
         areas.add(Area(id: area['id'], name: area['name']));
       }
 

@@ -31,6 +31,7 @@ class ChargersopService {
             .where((charger) =>
                 charger['occupation'] == 'SUPERVISOR' ||
                 charger['occupation'] == 'COORDINADOR')
+            .where((charger) => charger['status'] == 'ACTIVE')
             .map((charger) => User.fromJson(charger))
             .toList();
       } else {

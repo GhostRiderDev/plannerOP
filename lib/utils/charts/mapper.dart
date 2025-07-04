@@ -30,14 +30,4 @@ class StatusMapper {
         return apiStatus;
     }
   }
-
-  /// Obtener todos los estados válidos para la API
-  static List<String> getAPIStatuses() {
-    return ['COMPLETED', 'INPROGRESS', 'PENDING', 'CANCELED'];
-  }
-
-  /// Obtener todos los estados válidos para la UI
-  static List<String> getUIStatuses() {
-    return ['Completada', 'En curso', 'Pendiente', 'Cancelada'];
-  }
 }

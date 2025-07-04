@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:plannerop/core/model/operation.dart';
+import 'package:plannerop/core/model/worker.dart';
 import 'package:plannerop/core/model/workerGroup.dart';
 import 'package:plannerop/store/feedings.dart';
 import 'package:plannerop/utils/feedingUtils.dart';
@@ -17,6 +18,8 @@ class WorkersList extends StatelessWidget {
   final String? groupEndTime;
   final FeedingProvider feedingProvider;
   final Function(int, bool)? onAlimentacionChanged;
+  final Function(WorkerGroup, List<Worker>)? onWorkersAddedToGroup;
+  final Function(WorkerGroup, List<Worker>)? onWorkersRemovedFromGroup;
 
   const WorkersList({
     Key? key,
@@ -29,6 +32,8 @@ class WorkersList extends StatelessWidget {
     required this.groupEndTime,
     required this.feedingProvider,
     this.onAlimentacionChanged,
+    this.onWorkersAddedToGroup,
+    this.onWorkersRemovedFromGroup,
   }) : super(key: key);
 
   @override
@@ -166,6 +171,14 @@ class WorkersList extends StatelessWidget {
                 ),
               ),
 
+              if (!isGroupCompleted && onWorkersRemovedFromGroup != null)
+                IconButton(
+                  icon: Icon(Icons.remove_circle_outline,
+                      color: Colors.red[600], size: 16),
+                  onPressed: () => _removeWorkerFromGroup(worker),
+                  tooltip: 'Remover del grupo',
+                ),
+
               // Mostrar estado de completado
               if (isGroupCompleted)
                 Container(
@@ -197,6 +210,28 @@ class WorkersList extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  void _removeWorkerFromGroup(dynamic worker) {
+    if (onWorkersRemovedFromGroup != null) {
+      // Convertir worker a Worker si es necesario
+      final workerObj = worker is Worker
+          ? worker
+          : Worker(
+              id: worker.id,
+              name: worker.name,
+              document: worker.document,
+              area: worker.area ?? assignment.area,
+              phone: worker.phone ?? '',
+              status: WorkerStatus.assigned,
+              startDate: DateTime.now(),
+              code: worker.code ?? '',
+              failures: worker.failures ?? 0,
+              idArea: assignment.areaId,
+            );
+
+      onWorkersRemovedFromGroup!(group, [workerObj]);
+    }
   }
 
   Widget _buildFeedingButton(
