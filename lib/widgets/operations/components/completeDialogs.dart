@@ -7,6 +7,7 @@ import 'package:plannerop/core/model/workerGroup.dart';
 import 'package:plannerop/providers/operations.dart';
 import 'package:plannerop/providers/workers.dart';
 import 'package:plannerop/utils/toast.dart';
+import 'package:plannerop/widgets/operations/components/completationDialogs/showCompletationDialogs.dart';
 import 'package:plannerop/widgets/operations/components/utils/Loader.dart';
 import 'package:provider/provider.dart';
 
@@ -19,7 +20,27 @@ void showCompletionDialog({
   bool isProcessing = false;
 
   for (var group in operation.groups) {
-    debugPrint("Id de la unidad de trabajo: ${group.idUnitOfMeasure}");
+    // Convert worker IDs to Worker objects
+    final workersProvider =
+        Provider.of<WorkersProvider>(context, listen: false);
+    List<Worker> groupWorkers = group.workers
+        .map((workerId) => workersProvider.getWorkerById(workerId))
+        .where((worker) => worker != null)
+        .cast<Worker>()
+        .toList();
+
+    showGroupCompletionDialogRequireData(
+      context,
+      operation,
+      groupWorkers,
+      group.id ?? '',
+      provider,
+      () {
+        // Callback para actualizar el estado global si es necesario
+        // Aquí puedes llamar a setState() o cualquier otra función que necesites
+      },
+      group,
+    );
   }
 
   showDialog(

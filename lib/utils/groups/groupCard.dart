@@ -55,8 +55,7 @@ class GroupCard extends StatelessWidget {
     }
 
     // Solo calcular alimentación si el grupo NO está completado
-    if (!isGroupCompleted &&
-        groupStartTime.isNotEmpty) {
+    if (!isGroupCompleted && groupStartTime.isNotEmpty) {
       groupFoods = FeedingUtils.determinateFoodsWithDeliveryStatus(
         groupStartTime,
         groupEndTime,
