@@ -18,7 +18,7 @@ class OperationCard extends StatelessWidget {
   final Widget? actionButton;
 
   const OperationCard({
-    Key? key,
+    super.key,
     required this.assignment,
     required this.onTap,
     required this.statusColor,
@@ -26,7 +26,7 @@ class OperationCard extends StatelessWidget {
     this.showCompletionDate = false,
     this.showFoodInfo = false,
     this.actionButton,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

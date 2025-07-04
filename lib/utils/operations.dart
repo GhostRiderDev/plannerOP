@@ -499,7 +499,7 @@ void showCancelDialog(
                           }
                         }
                       },
-                child: Container(
+                child: SizedBox(
                   width: 100,
                   height: 36,
                   child: Center(

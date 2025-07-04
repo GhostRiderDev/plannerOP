@@ -95,7 +95,7 @@ Widget buildGroupsSection(
           onAlimentacionChanged: onAlimentacionChanged,
           setState: setState,
         );
-      }).toList(),
+      }),
     ],
   );
 }

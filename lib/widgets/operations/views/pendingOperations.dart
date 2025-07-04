@@ -16,8 +16,7 @@ import 'package:plannerop/core/model/operation.dart';
 class PendingOperationsView extends StatefulWidget {
   final String searchQuery;
 
-  const PendingOperationsView({Key? key, required this.searchQuery})
-      : super(key: key);
+  const PendingOperationsView({super.key, required this.searchQuery});
 
   @override
   _PendingOperationsViewState createState() => _PendingOperationsViewState();
@@ -355,7 +354,7 @@ class _PendingOperationsViewState extends State<PendingOperationsView> {
                           }
                         }
                       },
-                child: Container(
+                child: SizedBox(
                   width: 100, // Ancho fijo para evitar redimensionamiento
                   height: 36,
                   child: Center(

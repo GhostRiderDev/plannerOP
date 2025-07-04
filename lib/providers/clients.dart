@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 
 class ClientsProvider with ChangeNotifier {
   List<Client> _clients = [];
-  ClientService _clientService = ClientService();
+  final ClientService _clientService = ClientService();
 
   List<Client> get clients {
     return [..._clients];

@@ -16,11 +16,11 @@ class WorkerDetailsSection extends StatefulWidget {
   final String workerCode;
 
   const WorkerDetailsSection({
-    Key? key,
+    super.key,
     required this.worker,
     required this.specialtyColor,
     required this.workerCode,
-  }) : super(key: key);
+  });
 
   @override
   State<WorkerDetailsSection> createState() => _WorkerDetailsSectionState();

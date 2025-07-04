@@ -14,11 +14,11 @@ class WorkerStatusChart extends StatefulWidget {
   final String area;
 
   const WorkerStatusChart({
-    Key? key,
+    super.key,
     required this.startDate,
     required this.endDate,
     required this.area,
-  }) : super(key: key);
+  });
 
   @override
   State<WorkerStatusChart> createState() => _WorkerStatusChartState();

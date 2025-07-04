@@ -23,7 +23,7 @@ class WorkersList extends StatelessWidget {
   final Function(WorkerGroup, List<Worker>)? onWorkersRemovedFromGroup;
 
   const WorkersList({
-    Key? key,
+    super.key,
     required this.group,
     required this.assignment,
     required this.isGroupCompleted,
@@ -35,7 +35,7 @@ class WorkersList extends StatelessWidget {
     this.onAlimentacionChanged,
     this.onWorkersAddedToGroup,
     this.onWorkersRemovedFromGroup,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

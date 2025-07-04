@@ -11,7 +11,7 @@ import 'package:provider/provider.dart';
 
 class OperationsProvider extends ChangeNotifier {
   final OperationService _operationService = OperationService();
-  List<Operation> _operations = [];
+  final List<Operation> _operations = [];
   bool _isLoading = false;
   String? _error;
   Timer? _refreshTimer;

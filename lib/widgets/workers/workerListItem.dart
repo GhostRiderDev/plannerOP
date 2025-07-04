@@ -7,11 +7,11 @@ class WorkerListItem extends StatelessWidget {
   final VoidCallback onTap;
 
   const WorkerListItem({
-    Key? key,
+    super.key,
     required this.worker,
     required this.specialtyColor,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   // Determina si se debe marcar el trabajador como crítico
   bool get _isCriticalWorker => worker.failures >= 5;

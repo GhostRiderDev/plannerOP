@@ -13,14 +13,14 @@ abstract class BaseChart<T> extends StatefulWidget {
   final String? status;
 
   const BaseChart({
-    Key? key,
+    super.key,
     required this.startDate,
     required this.endDate,
     required this.area,
     this.zone,
     this.motorship,
     this.status,
-  }) : super(key: key);
+  });
 }
 
 abstract class BaseChartState<T, W extends BaseChart<T>> extends State<W> {

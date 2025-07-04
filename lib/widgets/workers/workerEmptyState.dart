@@ -4,9 +4,9 @@ class WorkerEmptyState extends StatelessWidget {
   final String searchQuery;
 
   const WorkerEmptyState({
-    Key? key,
+    super.key,
     required this.searchQuery,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

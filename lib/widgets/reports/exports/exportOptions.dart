@@ -26,7 +26,7 @@ class ExportOptions extends StatefulWidget {
   final Function(String) onExport;
 
   const ExportOptions({
-    Key? key,
+    super.key,
     required this.periodName,
     required this.startDate,
     required this.endDate,
@@ -35,7 +35,7 @@ class ExportOptions extends StatefulWidget {
     this.zone,
     this.motorship,
     this.status,
-  }) : super(key: key);
+  });
 
   @override
   State<ExportOptions> createState() => _ExportOptionsState();
@@ -268,7 +268,7 @@ class _ExportOptionsState extends State<ExportOptions> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF3182CE).withOpacity(0.1),
+                color: const Color(0xFF3182CE).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: AppLoader(
@@ -302,10 +302,10 @@ class _ExportOptionsState extends State<ExportOptions> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF3182CE).withOpacity(0.1),
+                color: const Color(0xFF3182CE).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
                 border:
-                    Border.all(color: const Color(0xFF3182CE).withOpacity(0.2)),
+                    Border.all(color: const Color(0xFF3182CE).withValues(alpha: 0.2)),
               ),
               child: Column(
                 children: [

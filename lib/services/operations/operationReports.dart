@@ -104,17 +104,12 @@ class PaginatedOperationsService {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final token = authProvider.accessToken;
 
-      if (token == null) {
-        debugPrint('Token no disponible');
-        return null;
-      }
-
       // Formatear fecha para la API
       final formattedDate =
           "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
 
       final url = Uri.parse(
-          '${API_URL}/operation/analytics/worker-distribution?date=$formattedDate');
+          '$API_URL/operation/analytics/worker-distribution?date=$formattedDate');
 
       debugPrint('Fetching hourly distribution from: $url');
 

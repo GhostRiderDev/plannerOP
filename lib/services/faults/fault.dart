@@ -23,7 +23,7 @@ class FaultService {
           Provider.of<AuthProvider>(context, listen: false).accessToken;
       final workersProvider =
           Provider.of<WorkersProvider>(context, listen: false);
-      final workers = await workersProvider.workers;
+      final workers = workersProvider.workers;
 
       var url = Uri.parse('$API_URL/called-attention');
       var response =
@@ -41,7 +41,7 @@ class FaultService {
 
         for (var fault in jsonResponse) {
           try {
-            if (workers.length == 0) {
+            if (workers.isEmpty) {
               debugPrint('No hay trabajadores para asociar faltas');
               return [];
             }

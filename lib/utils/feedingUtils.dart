@@ -64,8 +64,9 @@ class FeedingUtils {
         horaInicio != null ? _parseTimeString(horaInicio) : null;
     TimeOfDay? fin = horaFin != null ? _parseTimeString(horaFin) : null;
 
-    if (inicio == null)
+    if (inicio == null) {
       return ["Sin alimentación"]; // Sin hora de inicio, no hay comidas
+    }
 
     // Convertir horas a minutos para facilitar comparaciones
     int inicioMinutos = inicio.hour * 60 + inicio.minute;

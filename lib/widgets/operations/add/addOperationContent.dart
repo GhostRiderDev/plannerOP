@@ -35,7 +35,7 @@ class AddOperationContent extends StatelessWidget {
   final Function(WorkerGroup, List<Worker>) onWorkersRemovedFromGroup;
 
   const AddOperationContent({
-    Key? key,
+    super.key,
     required this.selectedGroups,
     required this.allWorkers,
     required this.areaController,
@@ -60,7 +60,7 @@ class AddOperationContent extends StatelessWidget {
     required this.onGroupsChanged,
     required this.onProgrammingSelected,
     required this.onWorkersRemovedFromGroup,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -11,7 +11,7 @@ class ActiveFiltersDisplay extends StatelessWidget {
   final VoidCallback onChangeFilters;
 
   const ActiveFiltersDisplay({
-    Key? key,
+    super.key,
     required this.startDate,
     required this.endDate,
     required this.selectedArea,
@@ -19,7 +19,7 @@ class ActiveFiltersDisplay extends StatelessWidget {
     this.selectedMotorship,
     this.selectedStatus,
     required this.onChangeFilters,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -36,8 +36,9 @@ class ActiveFiltersDisplay extends StatelessWidget {
     activeFilters.add("Fecha: $dateRange");
     if (selectedArea != 'Todas') activeFilters.add("Área: $selectedArea");
     if (selectedZone != null) activeFilters.add("Zona: $selectedZone");
-    if (selectedMotorship != null)
+    if (selectedMotorship != null) {
       activeFilters.add("Motonave: $selectedMotorship");
+    }
     if (selectedStatus != null) activeFilters.add("Estado: $selectedStatus");
 
     return Container(

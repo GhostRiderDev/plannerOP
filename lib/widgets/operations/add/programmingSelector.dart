@@ -12,11 +12,11 @@ class ProgrammingSelector extends StatefulWidget {
   final Programming? initialValue;
 
   const ProgrammingSelector({
-    Key? key,
+    super.key,
     required this.startDate,
     required this.onProgrammingSelected,
     this.initialValue,
-  }) : super(key: key);
+  });
 
   @override
   State<ProgrammingSelector> createState() => _ProgrammingSelectorState();
@@ -26,7 +26,7 @@ class _ProgrammingSelectorState extends State<ProgrammingSelector> {
   List<Programming> _filteredProgrammings = [];
   List<Programming> _selectableProgrammings = [];
   List<Programming> _nonSelectableProgrammings = [];
-  bool _isLoading = false;
+  final bool _isLoading = false;
   Programming? _selectedProgramming;
 
   @override

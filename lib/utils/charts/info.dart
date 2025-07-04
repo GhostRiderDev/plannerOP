@@ -8,12 +8,12 @@ class ChartCenterInfo extends StatelessWidget {
   final String selectedLabel;
 
   const ChartCenterInfo({
-    Key? key,
+    super.key,
     required this.data,
     required this.selectedIndex,
     this.totalLabel = 'Total',
     this.selectedLabel = '',
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

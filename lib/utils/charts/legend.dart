@@ -10,14 +10,14 @@ class ChartLegend extends StatelessWidget {
   final bool showPercentage;
 
   const ChartLegend({
-    Key? key,
+    super.key,
     required this.data,
     required this.selectedIndex,
     required this.onItemTap,
     this.horizontal = true,
     this.valueLabel = 'items',
     this.showPercentage = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

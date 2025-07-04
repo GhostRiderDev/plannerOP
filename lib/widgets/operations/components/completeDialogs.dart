@@ -107,7 +107,7 @@ void showCompletionDialog({
                           }
                         }
                       },
-                child: Container(
+                child: SizedBox(
                   width: 100,
                   height: 36,
                   child: Center(
@@ -382,7 +382,7 @@ void showIndividualCompletionDialog(BuildContext context, Operation assignment,
                           }
                         }
                       },
-                child: Container(
+                child: SizedBox(
                   width: 100,
                   height: 36,
                   child: Center(
@@ -648,7 +648,7 @@ void showGroupCompletionDialog(
                           isProcessing = false;
                         }
                       },
-                child: Container(
+                child: SizedBox(
                   width: 100,
                   height: 36,
                   child: Center(

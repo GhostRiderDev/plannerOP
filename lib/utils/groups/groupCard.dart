@@ -19,13 +19,13 @@ class GroupCard extends StatelessWidget {
   final Function? setState;
 
   const GroupCard({
-    Key? key,
+    super.key,
     required this.group,
     required this.groupIndex,
     required this.assignment,
     this.onAlimentacionChanged,
     this.setState,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +56,6 @@ class GroupCard extends StatelessWidget {
 
     // Solo calcular alimentación si el grupo NO está completado
     if (!isGroupCompleted &&
-        groupStartTime != null &&
         groupStartTime.isNotEmpty) {
       groupFoods = FeedingUtils.determinateFoodsWithDeliveryStatus(
         groupStartTime,

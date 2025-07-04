@@ -15,7 +15,7 @@ class ProgrammingSelectionModal extends StatelessWidget {
   final String Function(String) getStatusText;
 
   const ProgrammingSelectionModal({
-    Key? key,
+    super.key,
     required this.startDate,
     required this.programmings,
     required this.selectableProgrammings,
@@ -26,7 +26,7 @@ class ProgrammingSelectionModal extends StatelessWidget {
     required this.onRefresh,
     required this.getStatusColor,
     required this.getStatusText,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -20,8 +20,7 @@ import 'package:plannerop/widgets/operations/components/utils.dart';
 class ActiveOperationsView extends StatefulWidget {
   final String searchQuery;
 
-  const ActiveOperationsView({Key? key, required this.searchQuery})
-      : super(key: key);
+  const ActiveOperationsView({super.key, required this.searchQuery});
 
   @override
   _ActiveOperationsViewState createState() => _ActiveOperationsViewState();

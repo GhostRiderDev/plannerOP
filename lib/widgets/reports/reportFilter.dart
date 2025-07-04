@@ -27,7 +27,7 @@ class ReportFilter extends StatefulWidget {
   final bool isChartsView;
 
   const ReportFilter({
-    Key? key,
+    super.key,
     required this.periods,
     required this.areas,
     required this.zones,
@@ -42,7 +42,7 @@ class ReportFilter extends StatefulWidget {
     required this.endDate,
     required this.onApply,
     required this.isChartsView,
-  }) : super(key: key);
+  });
 
   @override
   State<ReportFilter> createState() => _ReportFilterState();

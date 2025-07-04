@@ -94,9 +94,9 @@ class OperationService {
       var response =
           await http.get(url, headers: {'Authorization': 'Bearer $token'});
 
-      var workers_provider =
+      var workersProvider =
           Provider.of<WorkersProvider>(context, listen: false);
-      var workers = workers_provider.workers;
+      var workers = workersProvider.workers;
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
@@ -302,11 +302,11 @@ class OperationService {
             for (var group in workerGroups) {
               // Extraer información del schedule
               var schedule = group['schedule'] ?? {};
-              final dateStart = schedule['dateStart'] ?? null;
-              final dateEnd = schedule['dateEnd'] ?? null;
-              final timeStart = schedule['timeStart'] ?? null;
-              final timeEnd = schedule['timeEnd'] ?? null;
-              final groupId = group["groupId"] ?? null;
+              final dateStart = schedule['dateStart'];
+              final dateEnd = schedule['dateEnd'];
+              final timeStart = schedule['timeStart'];
+              final timeEnd = schedule['timeEnd'];
+              final groupId = group["groupId"];
 
               // Verificar si este grupo tiene un horario definido
               final hasSchedule = (dateStart != null && dateStart != "") ||
@@ -395,8 +395,8 @@ class OperationService {
                 String groupName = getGroupName(
                   dateStart != null ? DateTime.tryParse(dateStart) : null,
                   dateEnd != null ? DateTime.tryParse(dateEnd) : null,
-                  timeStart != null ? timeStart : null,
-                  timeEnd != null ? timeEnd : null,
+                  timeStart,
+                  timeEnd,
                 );
 
                 // Añadir el grupo a la lista de grupos

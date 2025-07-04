@@ -20,17 +20,14 @@ class AreaData extends ChartData {
   final String dateRange;
 
   AreaData({
-    required String name,
+    required super.name,
     required int personnel,
-    required Color color,
+    required super.color,
     this.assignments = 0,
     this.dateRange = '',
-    double percentage = 0,
+    super.percentage,
   }) : super(
-          name: name,
           value: personnel,
-          color: color,
-          percentage: percentage,
         );
 }
 
@@ -42,20 +39,17 @@ class ZoneData extends ChartData {
   final String dateRange;
 
   ZoneData({
-    required String name,
+    required super.name,
     required int personnel,
-    required Color color,
+    required super.color,
     this.totalAssignments = 0,
     this.taskCounts = const {},
     this.statusCounts = const {},
     this.zoneNumber = 0,
     this.dateRange = '',
-    double percentage = 0,
+    super.percentage,
   }) : super(
-          name: name,
           value: personnel,
-          color: color,
-          percentage: percentage,
         );
 }
 
@@ -66,19 +60,16 @@ class ShipData extends ChartData {
   final List<Operation> assignmentList;
 
   ShipData({
-    required String name,
+    required super.name,
     required int personnel,
-    required Color color,
+    required super.color,
     this.totalAssignments = 0,
     this.dateRange = '',
     this.workers = const [],
     this.assignmentList = const [],
-    double percentage = 0,
+    super.percentage,
   }) : super(
-          name: name,
           value: personnel,
-          color: color,
-          percentage: percentage,
         );
 
   // Getter para mantener compatibilidad
@@ -93,13 +84,11 @@ class HourlyDistributionData extends ChartData {
     required this.hour,
     required int workerCount,
     required this.workers,
-    Color color = const Color(0xFF3182CE),
-    double percentage = 0.0,
+    super.color = const Color(0xFF3182CE),
+    super.percentage,
   }) : super(
           name: hour,
           value: workerCount,
-          color: color,
-          percentage: percentage,
         );
 
   // Getter para mantener compatibilidad

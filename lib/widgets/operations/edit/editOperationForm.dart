@@ -20,11 +20,11 @@ class EditOperationForm extends StatefulWidget {
   final VoidCallback onCancel;
 
   const EditOperationForm({
-    Key? key,
+    super.key,
     required this.assignment,
     required this.onSave,
     required this.onCancel,
-  }) : super(key: key);
+  });
 
   @override
   EditOperationFormState createState() => EditOperationFormState();
@@ -46,8 +46,8 @@ class EditOperationFormState extends State<EditOperationForm> {
   bool _isShipArea = false;
   late List<WorkerGroup> _selectedGroups;
 
-  Map<String, List<int>> _workersAddedToGroups = {};
-  Map<String, List<int>> _workersRemovedFromGroups = {};
+  final Map<String, List<int>> _workersAddedToGroups = {};
+  final Map<String, List<int>> _workersRemovedFromGroups = {};
 
   // Contadores para forzar la reconstrucción de los campos de fecha/hora
   final int _dateUpdateCounter = 0;
@@ -103,9 +103,7 @@ class EditOperationFormState extends State<EditOperationForm> {
     final clientsProvider =
         Provider.of<ClientsProvider>(context, listen: false);
     final client = clientsProvider.getClientById(widget.assignment.clientId);
-    if (client != null) {
-      _clientController.text = client.name;
-    }
+    _clientController.text = client.name;
   }
 
   void _initializeWorkers() {
@@ -301,6 +299,11 @@ class EditOperationFormState extends State<EditOperationForm> {
     client ??=
         Client(id: widget.assignment.clientId, name: "Cliente no encontrado");
 
+    var zone = "N/A";
+    if (widget.assignment.zone != 0) {
+      zone = 'Zona ${widget.assignment.zone}';
+    }
+
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: const BoxDecoration(
@@ -446,7 +449,7 @@ class EditOperationFormState extends State<EditOperationForm> {
                   // Campo de zona (NO editable)
                   buildNonEditableField(
                     label: 'Zona',
-                    value: 'Zona ${widget.assignment.zone}',
+                    value: zone,
                     icon: Icons.grid_view_outlined,
                   ),
 
@@ -506,7 +509,7 @@ class EditOperationFormState extends State<EditOperationForm> {
                         NeumorphicBoxShape.roundRect(BorderRadius.circular(8)),
                   ),
                   onPressed: _isSaving ? null : () => _saveChanges(context),
-                  child: Container(
+                  child: SizedBox(
                     width: 140,
                     height: 40,
                     child: Center(

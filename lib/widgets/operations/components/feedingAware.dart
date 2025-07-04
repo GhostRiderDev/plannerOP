@@ -15,12 +15,12 @@ class FeedingAwareWidget extends StatefulWidget {
   final Function(int, bool) onAlimentacionChanged;
 
   const FeedingAwareWidget({
-    Key? key,
+    super.key,
     required this.operationId,
     required this.assignment,
     required this.alimentacionStatus,
     required this.onAlimentacionChanged,
-  }) : super(key: key);
+  });
 
   @override
   State<FeedingAwareWidget> createState() => _FeedingAwareWidgetState();
@@ -225,7 +225,7 @@ class _FeedingAwareWidgetState extends State<FeedingAwareWidget> {
                   }
                 : null,
           );
-        }).toList(),
+        }),
       ],
     );
   }

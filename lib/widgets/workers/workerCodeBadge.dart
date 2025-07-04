@@ -10,12 +10,12 @@ class WorkerCodeBadge extends StatefulWidget {
   final Color? backgroundColor;
 
   const WorkerCodeBadge({
-    Key? key,
+    super.key,
     required this.code,
     this.showCopyButton = true,
     this.textColor,
     this.backgroundColor,
-  }) : super(key: key);
+  });
 
   @override
   State<WorkerCodeBadge> createState() => _WorkerCodeBadgeState();
@@ -116,12 +116,12 @@ class WorkerCodeBadgeExtended extends StatelessWidget {
   final Color? color;
 
   const WorkerCodeBadgeExtended({
-    Key? key,
+    super.key,
     required this.code,
     this.label = 'CÓDIGO',
     this.icon,
     this.color,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -190,10 +190,10 @@ class AnimatedWorkerCodeBadge extends StatefulWidget {
   final Color color;
 
   const AnimatedWorkerCodeBadge({
-    Key? key,
+    super.key,
     required this.code,
     required this.color,
-  }) : super(key: key);
+  });
 
   @override
   State<AnimatedWorkerCodeBadge> createState() =>

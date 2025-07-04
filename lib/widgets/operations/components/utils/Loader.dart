@@ -13,7 +13,7 @@ class AppLoader extends StatelessWidget {
   final TextStyle? messageStyle;
 
   const AppLoader({
-    Key? key,
+    super.key,
     this.message,
     this.color,
     this.size = LoaderSize.medium,
@@ -22,7 +22,7 @@ class AppLoader extends StatelessWidget {
     this.showAsScaffold = false,
     this.backgroundColor,
     this.messageStyle,
-  }) : super(key: key);
+  });
 
   //  FACTORY CONSTRUCTORS PARA CASOS COMUNES
   factory AppLoader.small({

@@ -12,7 +12,7 @@ class DropdownField extends StatefulWidget {
   final bool allowClear;
 
   const DropdownField({
-    Key? key,
+    super.key,
     required this.label,
     required this.hint,
     required this.icon,
@@ -21,7 +21,7 @@ class DropdownField extends StatefulWidget {
     this.onSelected,
     this.enabled = true,
     this.allowClear = true,
-  }) : super(key: key);
+  });
 
   @override
   State<DropdownField> createState() => _DropdownFieldState();
