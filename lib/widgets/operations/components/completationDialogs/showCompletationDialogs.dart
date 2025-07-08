@@ -4,6 +4,7 @@ import 'package:plannerop/core/model/worker.dart';
 import 'package:plannerop/core/model/workerGroup.dart';
 import 'package:plannerop/providers/operations.dart';
 import 'package:plannerop/widgets/operations/components/completationDialogs/jornalCompletation.dart';
+import 'package:plannerop/widgets/operations/components/completeDialogs.dart';
 
 void showGroupCompletionDialogRequireData(
     BuildContext context,
@@ -17,14 +18,7 @@ void showGroupCompletionDialogRequireData(
   switch (group.idUnitOfMeasure) {
     case 1: // Jornada/Horas
       showJornalCompletionDialog(
-        context,
-        assignment,
-        workers,
-        groupId,
-        provider,
-        setState,
-        group,
-      );
+          context, assignment, workers, groupId, provider, setState, group);
       break;
     // case 2: // Por toneladas
     //   _showTonnageCompletionDialog(

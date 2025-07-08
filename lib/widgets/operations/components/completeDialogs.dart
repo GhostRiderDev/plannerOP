@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:intl/intl.dart';
@@ -7,41 +9,126 @@ import 'package:plannerop/core/model/workerGroup.dart';
 import 'package:plannerop/providers/operations.dart';
 import 'package:plannerop/providers/workers.dart';
 import 'package:plannerop/utils/toast.dart';
-import 'package:plannerop/widgets/operations/components/completationDialogs/showCompletationDialogs.dart';
+import 'package:plannerop/widgets/operations/components/completationDialogs/jornalCompletation.dart';
 import 'package:plannerop/widgets/operations/components/utils/Loader.dart';
 import 'package:provider/provider.dart';
 
-// Dialogo para confirmar la finalización de una operación
-void showCompletionDialog({
+// HACER la función async y restructurar el flujo
+Future<void> showCompletionDialog({
   required BuildContext context,
   required Operation operation,
   required OperationsProvider provider,
-}) {
-  bool isProcessing = false;
+}) async {
+  try {
+    // ✅ PRIMERO: Procesar todos los grupos uno por uno
+    for (var group in operation.groups) {
+      // Convert worker IDs to Worker objects
+      final workersProvider =
+          Provider.of<WorkersProvider>(context, listen: false);
+      List<Worker> groupWorkers = group.workers
+          .map((workerId) => workersProvider.getWorkerById(workerId))
+          .where((worker) => worker != null)
+          .cast<Worker>()
+          .toList();
 
-  for (var group in operation.groups) {
-    // Convert worker IDs to Worker objects
-    final workersProvider =
-        Provider.of<WorkersProvider>(context, listen: false);
-    List<Worker> groupWorkers = group.workers
-        .map((workerId) => workersProvider.getWorkerById(workerId))
-        .where((worker) => worker != null)
-        .cast<Worker>()
-        .toList();
+      // ✅ ESPERAR a que se complete cada grupo individualmente
+      await _showAndWaitForGroupCompletion(
+        context,
+        operation,
+        groupWorkers,
+        group,
+        provider,
+      );
+    }
 
-    showGroupCompletionDialogRequireData(
-      context,
-      operation,
-      groupWorkers,
-      group.id ?? '',
-      provider,
-      () {
-        // Callback para actualizar el estado global si es necesario
-        // Aquí puedes llamar a setState() o cualquier otra función que necesites
-      },
-      group,
-    );
+    // ✅ DESPUÉS: Mostrar el diálogo de confirmación final
+    await _showFinalConfirmationDialog(context, operation, provider);
+  } catch (e) {
+    debugPrint('Error en showCompletionDialog: $e');
+    if (context.mounted) {
+      showErrorToast(context, 'Error al procesar la operación: $e');
+    }
   }
+}
+
+// FUNCIÓN para manejar cada grupo y esperar su finalización
+Future<void> _showAndWaitForGroupCompletion(
+  BuildContext context,
+  Operation operation,
+  List<Worker> groupWorkers,
+  WorkerGroup group,
+  OperationsProvider provider,
+) async {
+  final Completer<void> completer = Completer<void>();
+
+  // Determinar qué tipo de diálogo mostrar según idUnitOfMeasure
+  switch (group.idUnitOfMeasure) {
+    case 1: // Jornada/Horas
+      await showJornalCompletionDialog(
+        context,
+        operation,
+        groupWorkers,
+        group.id ?? '',
+        provider,
+        () {
+          if (!completer.isCompleted) completer.complete();
+        },
+        group,
+      );
+      break;
+    case 2: // Por toneladas
+      await showTonnageCompletionDialog(
+        context,
+        operation,
+        groupWorkers,
+        group.id ?? '',
+        provider,
+        () {
+          if (!completer.isCompleted) completer.complete();
+        },
+        group,
+      );
+      break;
+    case 3: // Por contenedores
+      await showContainerCompletionDialog(
+        context,
+        operation,
+        groupWorkers,
+        group.id ?? '',
+        provider,
+        () {
+          if (!completer.isCompleted) completer.complete();
+        },
+        group,
+      );
+      break;
+    default:
+      // Diálogo genérico
+      showGroupCompletionDialog(
+        context,
+        operation,
+        groupWorkers,
+        group.id ?? '',
+        provider,
+        () {
+          if (!completer.isCompleted) completer.complete();
+        },
+      );
+      break;
+  }
+
+  // Esperar a que el diálogo se complete
+  return completer.future;
+}
+
+// DIÁLOGO de confirmación final
+Future<void> _showFinalConfirmationDialog(
+  BuildContext context,
+  Operation operation,
+  OperationsProvider provider,
+) async {
+  final Completer<void> completer = Completer<void>();
+  bool isProcessing = false;
 
   showDialog(
     context: context,
@@ -59,8 +146,12 @@ void showCompletionDialog({
             ),
             actions: [
               TextButton(
-                onPressed:
-                    isProcessing ? null : () => Navigator.pop(dialogContext),
+                onPressed: isProcessing
+                    ? null
+                    : () {
+                        Navigator.pop(dialogContext);
+                        if (!completer.isCompleted) completer.complete();
+                      },
                 style: TextButton.styleFrom(
                   foregroundColor: isProcessing
                       ? const Color(0xFFCBD5E0)
@@ -103,14 +194,6 @@ void showCompletionDialog({
                               context);
 
                           if (success) {
-                            // final workersProvider =
-                            //     Provider.of<WorkersProvider>(context,
-                            //         listen: false);
-                            // for (var worker in assignment.workers) {
-                            //   workersProvider.releaseWorkerObject(
-                            //       worker, context);
-                            // }
-
                             Navigator.pop(dialogContext);
                             showSuccessToast(
                                 context, 'Operación completada exitosamente');
@@ -130,6 +213,8 @@ void showCompletionDialog({
                             showErrorToast(
                                 context, 'Error al completar operación: $e');
                           }
+                        } finally {
+                          if (!completer.isCompleted) completer.complete();
                         }
                       },
                 child: SizedBox(
@@ -157,6 +242,109 @@ void showCompletionDialog({
       );
     },
   );
+
+  return completer.future;
+}
+
+// FUNCIONES de diálogo específicas que retornan Future
+
+Future<void> showJornalCompletionDialog(
+  BuildContext context,
+  Operation assignment,
+  List<Worker> workers,
+  String groupId,
+  OperationsProvider provider,
+  Function onStateChanged,
+  WorkerGroup group,
+) async {
+  final Completer<void> completer = Completer<void>();
+
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext dialogContext) {
+      return JornalCompletionDialog(
+        onStateChanged: () {
+          onStateChanged();
+          Navigator.pop(dialogContext);
+          if (!completer.isCompleted) completer.complete();
+        },
+        group: group,
+        // onCancel: () {
+        //   Navigator.pop(dialogContext);
+        //   if (!completer.isCompleted) completer.complete();
+        // },
+      );
+    },
+  );
+
+  return completer.future;
+}
+
+Future<void> showTonnageCompletionDialog(
+  BuildContext context,
+  Operation assignment,
+  List<Worker> workers,
+  String groupId,
+  OperationsProvider provider,
+  Function onStateChanged,
+  WorkerGroup group,
+) async {
+  // Implementar diálogo de toneladas
+  final Completer<void> completer = Completer<void>();
+
+  // TODO: Implementar diálogo específico para toneladas
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text('Completar por Toneladas'),
+      content: Text('Diálogo para toneladas - Por implementar'),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.pop(context);
+            if (!completer.isCompleted) completer.complete();
+          },
+          child: Text('Cerrar'),
+        ),
+      ],
+    ),
+  );
+
+  return completer.future;
+}
+
+Future<void> showContainerCompletionDialog(
+  BuildContext context,
+  Operation assignment,
+  List<Worker> workers,
+  String groupId,
+  OperationsProvider provider,
+  Function onStateChanged,
+  WorkerGroup group,
+) async {
+  // Implementar diálogo de contenedores
+  final Completer<void> completer = Completer<void>();
+
+  // TODO: Implementar diálogo específico para contenedores
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text('Completar por Contenedores'),
+      content: Text('Diálogo para contenedores - Por implementar'),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.pop(context);
+            if (!completer.isCompleted) completer.complete();
+          },
+          child: Text('Cerrar'),
+        ),
+      ],
+    ),
+  );
+
+  return completer.future;
 }
 
 // Diálogo para confirmar la finalización de un único trabajador
@@ -598,11 +786,6 @@ void showGroupCompletionDialog(
                 onPressed: isProcessing
                     ? null
                     : () async {
-                        // Liberar al grupo de trabajadores
-                        var workersProvider = Provider.of<WorkersProvider>(
-                            context,
-                            listen: false);
-
                         try {
                           // Crear copia de la operación con solo los trabajadores completados
                           Operation completedAssignment = Operation(
