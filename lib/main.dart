@@ -25,8 +25,7 @@ Future<void> main() async {
   await dotenv.load(fileName: ".env");
 
   final hashKey = dotenv.get('HASH_KEY', fallback: 'default_hash_key');
-  debugPrint(
-      '🔑 HASH_KEY en main: longitud=${hashKey.length}, preview=${hashKey.substring(0, 4)}...');
+
   runApp(
     MultiProvider(
       providers: [

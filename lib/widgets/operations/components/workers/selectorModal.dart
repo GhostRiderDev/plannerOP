@@ -182,7 +182,7 @@ class ProgrammingSelectionModal extends StatelessWidget {
                   ),
                 ],
               ),
-              // ✅ AGREGAR INFORMACIÓN DEL CLIENTE
+              //  AGREGAR INFORMACIÓN DEL CLIENTE
               const SizedBox(height: 6),
               Row(
                 children: [

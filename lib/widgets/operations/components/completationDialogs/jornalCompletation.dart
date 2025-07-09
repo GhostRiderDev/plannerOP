@@ -6,38 +6,30 @@ import 'package:plannerop/core/model/workerGroup.dart';
 import 'package:plannerop/utils/toast.dart';
 import 'package:plannerop/widgets/operations/components/utils/Loader.dart';
 
-class JornalCompletionDialog extends StatefulWidget {
+class HoursCompletetion extends StatefulWidget {
   final WorkerGroup group;
   final Function onStateChanged;
 
-  JornalCompletionDialog({required this.group, required this.onStateChanged});
+  HoursCompletetion({required this.group, required this.onStateChanged});
 
   @override
-  _JornalCompletionDialogState createState() => _JornalCompletionDialogState();
+  _HoursDialogState createState() => _HoursDialogState();
 }
 
-class _JornalCompletionDialogState extends State<JornalCompletionDialog> {
+class _HoursDialogState extends State<HoursCompletetion> {
   bool _isProcessing = false;
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
 
   // Controladores para todos los tipos de horas
-  final TextEditingController _hodController =
-      TextEditingController(); // Horas Ordinarias Diurnas
-  final TextEditingController _honController =
-      TextEditingController(); // Horas Ordinarias Nocturnas
-  final TextEditingController _hedController =
-      TextEditingController(); // Horas Extras Diurnas
-  final TextEditingController _henController =
-      TextEditingController(); // Horas Extras Nocturnas
-  final TextEditingController _hodfController =
-      TextEditingController(); // Horas Ordinarias Diurnas Festivas
-  final TextEditingController _honfController =
-      TextEditingController(); // Horas Ordinarias Nocturnas Festivas
-  final TextEditingController _hedfController =
-      TextEditingController(); // Horas Extras Diurnas Festivas
-  final TextEditingController _henfController =
-      TextEditingController(); // Horas Extras Nocturnas Festivas
+  final TextEditingController _hodController = TextEditingController();
+  final TextEditingController _honController = TextEditingController();
+  final TextEditingController _hedController = TextEditingController();
+  final TextEditingController _henController = TextEditingController();
+  final TextEditingController _hodfController = TextEditingController();
+  final TextEditingController _honfController = TextEditingController();
+  final TextEditingController _hedfController = TextEditingController();
+  final TextEditingController _henfController = TextEditingController();
   final TextEditingController _observationsController = TextEditingController();
 
   // Calculados
@@ -60,6 +52,56 @@ class _JornalCompletionDialogState extends State<JornalCompletionDialog> {
         "${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}";
   }
 
+  // ✅ MÉTODO PARA DETERMINAR QUÉ CAMPOS MOSTRAR SEGÚN LA UNIDAD DE MEDIDA
+  Map<String, bool> get _getVisibleFields {
+    switch (widget.group.idUnitOfMeasure) {
+      case 1: // Jornada - Solo horas extras y festivas
+        return {
+          'ordinarias': false, // Deshabilitar HOD, HON
+          'extras': true, // Mostrar HED, HEN
+          // No mostrar  HODF, HONF
+          'festivas': true, // Mostrar HEDF, HENF
+          'festivasOrdinarias': false, // Deshabilitar HODF, HONF
+        };
+      case 4: // Horas - Mostrar todo
+        return {
+          'ordinarias': true, // Mostrar HOD, HON
+          'extras': true, // Mostrar HED, HEN
+          'festivas': true, // Mostrar todas las festivas
+        };
+      default: // Otras unidades - Mostrar todo por defecto
+        return {
+          'ordinarias': true,
+          'extras': true,
+          'festivas': true,
+        };
+    }
+  }
+
+  // ✅ MÉTODO PARA OBTENER EL TÍTULO SEGÚN LA UNIDAD DE MEDIDA
+  String get _getDialogTitle {
+    switch (widget.group.idUnitOfMeasure) {
+      case 1:
+        return 'Completar Jornada Laboral';
+      case 2:
+        return 'Registro de Horas Trabajadas';
+      default:
+        return 'Completar Jornada';
+    }
+  }
+
+  // ✅ MÉTODO PARA OBTENER DESCRIPCIÓN SEGÚN LA UNIDAD DE MEDIDA
+  String get _getDialogDescription {
+    switch (widget.group.idUnitOfMeasure) {
+      case 1:
+        return 'Registro de horas extras y festivas para jornada laboral';
+      case 2:
+        return 'Registro completo de horas laborales';
+      default:
+        return 'Registro de horas laborales';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -68,7 +110,12 @@ class _JornalCompletionDialogState extends State<JornalCompletionDialog> {
         children: [
           Icon(Icons.access_time, color: Color(0xFF3182CE)),
           SizedBox(width: 8),
-          Text('Completar Jornada'),
+          Expanded(
+            child: Text(
+              _getDialogTitle,
+              style: TextStyle(fontSize: 16),
+            ),
+          ),
         ],
       ),
       content: SingleChildScrollView(
@@ -78,6 +125,33 @@ class _JornalCompletionDialogState extends State<JornalCompletionDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ✅ DESCRIPCIÓN CONTEXTUAL
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Color(0xFFF7FAFC),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Color(0xFFE2E8F0)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline,
+                        size: 16, color: Color(0xFF4299E1)),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _getDialogDescription,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF4A5568),
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 16),
               _buildHoursSection(),
               SizedBox(height: 16),
               _buildObservationsSection(),
@@ -112,7 +186,7 @@ class _JornalCompletionDialogState extends State<JornalCompletionDialog> {
                       size: LoaderSize.medium,
                       message: 'Procesando...')
                   : Text(
-                      'Completar Jornada',
+                      'Completar',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
@@ -127,6 +201,8 @@ class _JornalCompletionDialogState extends State<JornalCompletionDialog> {
   }
 
   Widget _buildHoursSection() {
+    final visibleFields = _getVisibleFields;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -146,45 +222,145 @@ class _JornalCompletionDialogState extends State<JornalCompletionDialog> {
         ),
         SizedBox(height: 12),
 
-        // ✅ Horas Ordinarias
-        _buildHoursCategorySection('Horas Ordinarias', Color(0xFF3182CE), [
-          _buildHourField('HOD', 'Horas Ordinarias Diurnas', _hodController,
-              (value) => _hod = value),
-          _buildHourField('HON', 'Horas Ordinarias Nocturnas', _honController,
-              (value) => _hon = value),
-        ]),
+        // ✅ HORAS ORDINARIAS - Condicional
+        if (visibleFields['ordinarias']!) ...[
+          _buildHoursCategorySection('Horas Ordinarias', Color(0xFF3182CE), [
+            _buildHourField('HOD', 'Horas Ordinarias Diurnas', _hodController,
+                (value) => _hod = value),
+            _buildHourField('HON', 'Horas Ordinarias Nocturnas', _honController,
+                (value) => _hon = value),
+          ]),
+          SizedBox(height: 12),
+        ],
 
-        SizedBox(height: 12),
+        // ✅ HORAS EXTRAS - Condicional
+        if (visibleFields['extras']!) ...[
+          _buildHoursCategorySection('Horas Extras', Color(0xFFD69E2E), [
+            _buildHourField('HED', 'Horas Extras Diurnas', _hedController,
+                (value) => _hed = value),
+            _buildHourField('HEN', 'Horas Extras Nocturnas', _henController,
+                (value) => _hen = value),
+          ]),
+          SizedBox(height: 12),
+        ],
 
-        // ✅ Horas Extras
-        _buildHoursCategorySection('Horas Extras', Color(0xFFD69E2E), [
-          _buildHourField('HED', 'Horas Extras Diurnas', _hedController,
-              (value) => _hed = value),
-          _buildHourField('HEN', 'Horas Extras Nocturnas', _henController,
-              (value) => _hen = value),
-        ]),
+        // ✅ HORAS FESTIVAS - Condicional
+        if (visibleFields['festivas']!) ...[
+          _buildHoursCategorySection('Horas Festivas', Color(0xFF9F7AEA), [
+            // ✅ CONDICIONAL: Solo mostrar HODF, HONF si está habilitado
+            if (visibleFields['festivasOrdinarias']!) ...[
+              _buildHourField('HODF', 'Horas Ordinarias Diurnas Festivas',
+                  _hodfController, (value) => _hodf = value),
+              _buildHourField('HONF', 'Horas Ordinarias Nocturnas Festivas',
+                  _honfController, (value) => _honf = value),
+            ],
+            // ✅ SIEMPRE mostrar HEDF, HENF cuando festivas esté habilitado
+            _buildHourField('HEDF', 'Horas Extras Diurnas Festivas',
+                _hedfController, (value) => _hedf = value),
+            _buildHourField('HENF', 'Horas Extras Nocturnas Festivas',
+                _henfController, (value) => _henf = value),
+          ]),
+          SizedBox(height: 12),
+        ],
 
-        SizedBox(height: 12),
+        // ✅ MENSAJE CUANDO NO HAY HORAS ORDINARIAS
+        if (!visibleFields['ordinarias']!) ...[
+          Container(
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Color(0xFFFFF3CD),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Color(0xFFFFE69C)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, size: 16, color: Color(0xFFD69E2E)),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Para jornada laboral, las horas ordinarias (HOD/HON) están incluidas en el salario base.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF8B5A00),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 12),
+        ],
 
-        // ✅ Horas Festivas
-        _buildHoursCategorySection('Horas Festivas', Color(0xFF9F7AEA), [
-          _buildHourField('HODF', 'Horas Ordinarias Diurnas Festivas',
-              _hodfController, (value) => _hodf = value),
-          _buildHourField('HONF', 'Horas Ordinarias Nocturnas Festivas',
-              _honfController, (value) => _honf = value),
-          _buildHourField('HEDF', 'Horas Extras Diurnas Festivas',
-              _hedfController, (value) => _hedf = value),
-          _buildHourField('HENF', 'Horas Extras Nocturnas Festivas',
-              _henfController, (value) => _henf = value),
-        ]),
-
-        // ✅ Resumen total
+        // Resumen total
         _buildHoursSummary(),
       ],
     );
   }
 
-  /// ✅ Widget para categoría de horas
+  // ✅ RESUMEN ACTUALIZADO CON LÓGICA CONDICIONAL
+  Widget _buildHoursSummary() {
+    final visibleFields = _getVisibleFields;
+
+    double totalHours = 0.0;
+    if (visibleFields['ordinarias']!) {
+      totalHours += _hod + _hon;
+    }
+    if (visibleFields['extras']!) {
+      totalHours += _hed + _hen;
+    }
+    if (visibleFields['festivas']!) {
+      totalHours += _hodf + _honf + _hedf + _henf;
+    }
+
+    if (totalHours > 0) {
+      return Container(
+        margin: EdgeInsets.only(top: 12),
+        padding: EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Color(0xFFF0FDF4),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Color(0xFF86EFAC)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.info_outline, size: 16, color: Color(0xFF16A34A)),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Total de horas registradas: ${totalHours.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF16A34A),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            // ✅ DESGLOSE PARA JORNADA LABORAL
+            if (!visibleFields['ordinarias']!) ...[
+              SizedBox(height: 8),
+              Text(
+                'Nota: Las horas ordinarias (8h) están incluidas en el salario base de la jornada.',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Color(0xFF059669),
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+
+    return SizedBox.shrink();
+  }
+
+  // ✅ RESTO DE MÉTODOS IGUALES...
   Widget _buildHoursCategorySection(
       String title, Color color, List<Widget> fields) {
     return Container(
@@ -217,7 +393,6 @@ class _JornalCompletionDialogState extends State<JornalCompletionDialog> {
     );
   }
 
-  /// ✅ Campo individual para horas
   Widget _buildHourField(String code, String label,
       TextEditingController controller, Function(double) onChanged) {
     return Row(
@@ -274,43 +449,6 @@ class _JornalCompletionDialogState extends State<JornalCompletionDialog> {
     );
   }
 
-  /// ✅ Resumen de horas totales
-  Widget _buildHoursSummary() {
-    double totalHours =
-        _hod + _hon + _hed + _hen + _hodf + _honf + _hedf + _henf;
-
-    if (totalHours > 0) {
-      return Container(
-        margin: EdgeInsets.only(top: 12),
-        padding: EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Color(0xFFF0FDF4),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Color(0xFF86EFAC)),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.info_outline, size: 16, color: Color(0xFF16A34A)),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Total de horas registradas: ${totalHours.toStringAsFixed(2)}',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF16A34A),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return SizedBox.shrink();
-  }
-
-  /// Sección de observaciones
   Widget _buildObservationsSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -337,49 +475,52 @@ class _JornalCompletionDialogState extends State<JornalCompletionDialog> {
     );
   }
 
-  /// Manejar la finalización de la jornada
   Future<void> _handleCompletion() async {
     setState(() {
       _isProcessing = true;
     });
 
     try {
-      //  Datos específicos de jornada laboral con todos los tipos de horas
-      final jornalData = {
-        'hod': _hod, // Horas Ordinarias Diurnas
-        'hon': _hon, // Horas Ordinarias Nocturnas
-        'hed': _hed, // Horas Extras Diurnas
-        'hen': _hen, // Horas Extras Nocturnas
-        'hodf': _hodf, // Horas Ordinarias Diurnas Festivas
-        'honf': _honf, // Horas Ordinarias Nocturnas Festivas
-        'hedf': _hedf, // Horas Extras Diurnas Festivas
-        'henf': _henf, // Horas Extras Nocturnas Festivas
+      // ✅ DATOS CONDICIONALES SEGÚN UNIDAD DE MEDIDA
+      final visibleFields = _getVisibleFields;
+      final jornalData = <String, dynamic>{
         'observations': _observationsController.text.trim(),
         'unitOfMeasure': widget.group.idUnitOfMeasure,
         'endDate': DateFormat('yyyy-MM-dd').format(_selectedDate),
         'endTime': _formattedTime,
       };
 
-      debugPrint('✅ Datos de jornada laboral: $jornalData');
+      // Solo incluir los campos visibles
+      if (visibleFields['ordinarias']!) {
+        jornalData['hod'] = _hod;
+        jornalData['hon'] = _hon;
+      }
+      if (visibleFields['extras']!) {
+        jornalData['hed'] = _hed;
+        jornalData['hen'] = _hen;
+      }
+      if (visibleFields['festivas']!) {
+        jornalData['hodf'] = _hodf;
+        jornalData['honf'] = _honf;
+        jornalData['hedf'] = _hedf;
+        jornalData['henf'] = _henf;
+      }
+
+      debugPrint('📊 Datos de jornada laboral: $jornalData');
 
       // TODO: Implementar llamada al API
-      // final success = await widget.provider.completeJornalGroup(
-      //   widget.assignment,
-      //   widget.workers,
-      //   widget.groupId,
-      //   jornalData,
-      //   context,
-      // );
-
-      // Simular éxito por ahora
       await Future.delayed(Duration(seconds: 1));
 
       widget.onStateChanged();
       Navigator.of(context).pop();
 
+      final totalHours = (visibleFields['ordinarias']! ? _hod + _hon : 0) +
+          (visibleFields['extras']! ? _hed + _hen : 0) +
+          (visibleFields['festivas']! ? _hodf + _honf + _hedf + _henf : 0);
+
       showSuccessToast(
         context,
-        'Jornada completada: Total ${(_hod + _hon + _hed + _hen + _hodf + _honf + _hedf + _henf).toStringAsFixed(2)} horas registradas',
+        'Jornada completada: Total ${totalHours.toStringAsFixed(2)} horas registradas',
       );
     } catch (e) {
       debugPrint('Error al completar jornada: $e');

@@ -11,10 +11,6 @@ class SiteSelector {
   Future<void> handleSiteSelection(BuildContext context) async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
 
-    // Solo mostrar para superadmin
-    if (userProvider.user.role != "SUPERADMIN" &&
-        userProvider.user.role != "ADMIN") return;
-
     // Cargar sedes disponibles
     final sites = await _loadAvailableSites(context);
 
@@ -22,9 +18,22 @@ class SiteSelector {
 
     // Configurar sedes disponibles
     userProvider.setAvailableSites(sites);
-
-    // Mostrar selector
-    final selectedSite = await _showSiteSelector(context, sites);
+    var selectedSite = userProvider.selectedSite;
+    // Solo mostrar para superadmin
+    if (userProvider.user.role == "SUPERADMIN") {
+      // Mostrar selector
+      selectedSite = await _showSiteSelector(context, sites);
+    } else {
+      final idSite = userProvider.user.idSite;
+      selectedSite = sites.firstWhere(
+        (site) => site.id == idSite,
+        orElse: () => Site(
+          id: 0,
+          name: 'Sede no encontrada',
+          subSites: [],
+        ),
+      );
+    }
 
     if (selectedSite != null) {
       userProvider.setSelectedSite(selectedSite);
@@ -147,7 +156,7 @@ class SiteSelector {
                   ),
                 ),
 
-                // ✅ CONTENIDO DEL DIÁLOGO
+                //  CONTENIDO DEL DIÁLOGO
                 Flexible(
                   child: Container(
                     width: double.infinity,

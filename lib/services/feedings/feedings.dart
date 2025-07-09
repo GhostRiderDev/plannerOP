@@ -45,7 +45,7 @@ class FeedingService {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        // ✅ PARSEAR RESPUESTA PARA OBTENER EL ID
+        //  PARSEAR RESPUESTA PARA OBTENER EL ID
         final responseData = jsonDecode(response.body);
         final int feedingId = responseData['id'] ?? responseData['feeding_id'];
 
@@ -78,7 +78,7 @@ class FeedingService {
         return false;
       }
 
-      // ✅ USAR EL ID ESPECÍFICO EN LA URL
+      //  USAR EL ID ESPECÍFICO EN LA URL
       final response = await http.delete(
         Uri.parse('$API_URL/feeding/$feedingId'),
         headers: {
@@ -123,7 +123,7 @@ class FeedingService {
       if (response.statusCode == 200) {
         final List<dynamic> feedingData = jsonDecode(response.body);
 
-        // ✅ VERIFICAR QUE CADA REGISTRO TENGA ID
+        //  VERIFICAR QUE CADA REGISTRO TENGA ID
         for (var feeding in feedingData) {
           if (!feeding.containsKey('id')) {
             debugPrint('⚠️ Registro de alimentación sin ID: $feeding');

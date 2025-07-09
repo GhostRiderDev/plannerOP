@@ -181,6 +181,7 @@ void showOperationDetails({
       cargo: charger.cargo,
       dni: charger.dni,
       phone: charger.phone,
+      idSite: charger.idSite,
     );
   }).toList();
 

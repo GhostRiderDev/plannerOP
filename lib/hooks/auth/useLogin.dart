@@ -45,90 +45,84 @@ Future<void> tryAutoLogin(bool mounted, Function setState, bool _isLoading,
       final decodedToken = JwtDecoder.decode(authProvider.accessToken);
       final userProvider = Provider.of<UserProvider>(context, listen: false);
       final authStorageService = new AuthStorageService();
-      userProvider.setUser(User(
-        name: decodedToken['username'],
-        id: decodedToken['id'],
-        dni: decodedToken['dni'],
-        phone: decodedToken['phone'],
-        cargo: decodedToken['occupation'],
-        role: decodedToken['role'],
-      ));
+      userProvider.setUser(User.fromJson(decodedToken));
 
-      try {
-        final SiteSelector siteSelector = SiteSelector();
-        await siteSelector.handleSiteSelection(context);
+      if (userProvider.user.role != "SUPERVISOR") {
+        try {
+          final SiteSelector siteSelector = SiteSelector();
+          await siteSelector.handleSiteSelection(context);
 
-        // VERIFICAR QUE REALMENTE SE SELECCIONÓ UN SITE
-        if (userProvider.selectedSite == null) {
-          debugPrint('❌ No se seleccionó sede durante auto-login');
+          // VERIFICAR QUE REALMENTE SE SELECCIONÓ UN SITE
+          if (userProvider.selectedSite == null) {
+            debugPrint('❌ No se seleccionó sede durante auto-login');
 
-          // ✅ LIMPIAR CREDENCIALES PARA EVITAR BUCLE DE ERROR
-          await authStorageService.clearCredentials();
+            //  LIMPIAR CREDENCIALES PARA EVITAR BUCLE DE ERROR
+            await authStorageService.clearCredentials();
+
+            if (mounted) {
+              showErrorToast(context, 'Debe seleccionar una sede principal');
+              setState(() {
+                _isLoading = false;
+              });
+            }
+            return;
+          }
+        } catch (siteSelectionError) {
+          debugPrint('❌ Error en selección de sede: $siteSelectionError');
+
+          //  SI HAY ERROR DE ENCRIPTACIÓN, LIMPIAR CREDENCIALES
+          if (siteSelectionError
+              .toString()
+              .contains('Invalid or corrupted pad block')) {
+            debugPrint(
+                '🧹 Detectado error de encriptación, limpiando credenciales');
+            await authStorageService.clearCredentials();
+          }
 
           if (mounted) {
-            showErrorToast(context, 'Debe seleccionar una sede principal');
+            showErrorToast(context,
+                'Error al seleccionar sede. Por favor inicie sesión manualmente.');
             setState(() {
               _isLoading = false;
             });
           }
           return;
         }
-      } catch (siteSelectionError) {
-        debugPrint('❌ Error en selección de sede: $siteSelectionError');
 
-        // ✅ SI HAY ERROR DE ENCRIPTACIÓN, LIMPIAR CREDENCIALES
-        if (siteSelectionError
-            .toString()
-            .contains('Invalid or corrupted pad block')) {
-          debugPrint(
-              '🧹 Detectado error de encriptación, limpiando credenciales');
-          await authStorageService.clearCredentials();
-        }
+        final siteId = userProvider.selectedSite!.id;
+        final subsiteId = userProvider.selectedSubsite?.id;
 
+        //  MOSTRAR LOADER PARA REFRESCAR TOKEN
         if (mounted) {
-          showErrorToast(context,
-              'Error al seleccionar sede. Por favor inicie sesión manualmente.');
-          setState(() {
-            _isLoading = false;
-          });
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return AppLoader(
+                message: 'Configurando sede seleccionada...',
+                color: Colors.blue,
+                size: LoaderSize.medium,
+              );
+            },
+          );
         }
-        return;
-      }
 
-      final siteId = userProvider.selectedSite!.id;
-      final subsiteId = userProvider.selectedSubsite?.id;
+        //  REFRESCO DE TOKEN CON AWAIT PARA ESPERAR RESPUESTA
+        final refreshSuccess =
+            await authProvider.refreshToken(siteId, subsiteId, context);
 
-      // ✅ MOSTRAR LOADER PARA REFRESCAR TOKEN
-      if (mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (BuildContext context) {
-            return AppLoader(
-              message: 'Configurando sede seleccionada...',
-              color: Colors.blue,
-              size: LoaderSize.medium,
-            );
-          },
-        );
-      }
-
-      // ✅ REFRESCO DE TOKEN CON AWAIT PARA ESPERAR RESPUESTA
-      final refreshSuccess =
-          await authProvider.refreshToken(siteId, subsiteId, context);
-
-      // Cerrar loader de configuración
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
-
-      if (!refreshSuccess) {
+        // Cerrar loader de configuración
         if (mounted) {
-          showErrorToast(context, 'Error al configurar la sede seleccionada');
+          Navigator.of(context).pop();
         }
-        return;
-      }
 
+        if (!refreshSuccess) {
+          if (mounted) {
+            showErrorToast(context, 'Error al configurar la sede seleccionada');
+          }
+          return;
+        }
+      }
       //  MOSTRAR LOADER DESPUÉS DE SELECCIONAR SEDE
       if (mounted) {
         showDialog(
@@ -256,65 +250,61 @@ Future<void> login(GlobalKey<FormState> _formKey, BuildContext context,
         final decodedToken = JwtDecoder.decode(authProvider.accessToken);
         final userProvider = Provider.of<UserProvider>(context, listen: false);
 
-        userProvider.setUser(User(
-          name: decodedToken['username'],
-          id: decodedToken['id'],
-          dni: decodedToken['dni'],
-          phone: decodedToken['phone'],
-          cargo: decodedToken['occupation'],
-          role: decodedToken['role'],
-        ));
+        userProvider.setUser(User.fromJson(decodedToken));
 
         // CERRAR LOADER DE LOGIN ANTES DE MOSTRAR SELECTOR
         closeDialog();
 
-        //  INICIAR SELECCIÓN DE SITE Y SUBSITE
-        final SiteSelector siteSelector = SiteSelector();
-        await siteSelector.handleSiteSelection(context);
+        if (userProvider.user.role != "SUPERVISOR") {
+          //  INICIAR SELECCIÓN DE SITE Y SUBSITE
+          final SiteSelector siteSelector = SiteSelector();
+          await siteSelector.handleSiteSelection(context);
 
-        //  VERIFICAR QUE REALMENTE SE SELECCIONÓ UN SITE
-        if (userProvider.selectedSite == null) {
-          if (mounted) {
-            showErrorToast(context, 'Debe seleccionar una sede principal');
+          //  VERIFICAR QUE REALMENTE SE SELECCIONÓ UN SITE
+          if (userProvider.selectedSite == null) {
+            if (mounted) {
+              showErrorToast(context, 'Debe seleccionar una sede principal');
+            }
+            return;
           }
-          return;
-        }
 
-        final siteId = userProvider.selectedSite!.id;
-        final subsiteId = userProvider.selectedSubsite?.id;
+          final siteId = userProvider.selectedSite!.id;
+          final subsiteId = userProvider.selectedSubsite?.id;
 
-        // ✅ MOSTRAR LOADER PARA REFRESCAR TOKEN
-        if (mounted) {
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (BuildContext context) {
-              return AppLoader(
-                message: 'Configurando sede seleccionada...',
-                color: Colors.blue,
-                size: LoaderSize.medium,
-              );
-            },
-          );
-        }
-
-        // ✅ REFRESCO DE TOKEN CON AWAIT PARA ESPERAR RESPUESTA
-        final refreshSuccess =
-            await authProvider.refreshToken(siteId, subsiteId, context);
-
-        // Cerrar loader de configuración
-        if (mounted) {
-          Navigator.of(context).pop();
-        }
-
-        if (!refreshSuccess) {
+          //  MOSTRAR LOADER PARA REFRESCAR TOKEN
           if (mounted) {
-            showErrorToast(context, 'Error al configurar la sede seleccionada');
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (BuildContext context) {
+                return AppLoader(
+                  message: 'Configurando sede seleccionada...',
+                  color: Colors.blue,
+                  size: LoaderSize.medium,
+                );
+              },
+            );
           }
-          return;
+
+          //  REFRESCO DE TOKEN CON AWAIT PARA ESPERAR RESPUESTA
+          final refreshSuccess =
+              await authProvider.refreshToken(siteId, subsiteId, context);
+
+          // Cerrar loader de configuración
+          if (mounted) {
+            Navigator.of(context).pop();
+          }
+
+          if (!refreshSuccess) {
+            if (mounted) {
+              showErrorToast(
+                  context, 'Error al configurar la sede seleccionada');
+            }
+            return;
+          }
         }
 
-        // ✅ MOSTRAR LOADER DE CARGA DE DATOS
+        //  MOSTRAR LOADER DE CARGA DE DATOS
         if (mounted) {
           showDialog(
             context: context,

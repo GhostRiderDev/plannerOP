@@ -423,7 +423,7 @@ class WorkersList extends StatelessWidget {
               onPressed: () async {
                 Navigator.of(dialogContext).pop();
 
-                // ✅ SOLO LLAMAR AL PROVIDER, NO AL CALLBACK
+                //  SOLO LLAMAR AL PROVIDER, NO AL CALLBACK
                 final success = await feedingProvider.unmarkFeeding(
                   operationId: assignment.id ?? 0,
                   workerId: worker.id,
@@ -431,7 +431,7 @@ class WorkersList extends StatelessWidget {
                   context: context,
                 );
 
-                // ✅ NO LLAMAR AL CALLBACK onAlimentacionChanged
+                //  NO LLAMAR AL CALLBACK onAlimentacionChanged
                 // El provider ya actualiza su estado interno y notifica cambios
                 if (!success) {
                   showErrorToast(context, 'Error al desmarcar alimentación');

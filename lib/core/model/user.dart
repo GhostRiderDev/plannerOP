@@ -5,6 +5,7 @@ class User {
   String phone;
   String cargo;
   String? role;
+  int idSite;
 
   User({
     required this.id,
@@ -12,6 +13,7 @@ class User {
     required this.dni,
     required this.phone,
     required this.cargo,
+    required this.idSite,
     this.role,
   });
 
@@ -23,6 +25,7 @@ class User {
       dni: json['dni'],
       phone: json['phone'],
       role: json['role'],
+      idSite: json['id_site'] ?? 0,
     );
   }
 

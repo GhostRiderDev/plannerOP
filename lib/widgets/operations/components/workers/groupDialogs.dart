@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:plannerop/core/model/subtask.dart';
+
 import 'package:plannerop/core/model/task.dart';
 import 'package:plannerop/core/model/worker.dart';
 import 'package:plannerop/core/model/workerGroup.dart';
@@ -46,6 +46,7 @@ Future<GroupCreationResult?> createWorkerGroup({
   final DateTime? endDate = scheduleData['endDate'];
   final int selectedServiceId = scheduleData['serviceId'] ?? 0;
   final int selectedTariffId = scheduleData['tariffId'] ?? 0;
+  final int selectedSubServiceId = scheduleData['subServiceId'] ?? 0;
 
   // Verificar que al menos tenga un horario definido
   if (startTime == null) {
@@ -101,7 +102,7 @@ Future<GroupCreationResult?> createWorkerGroup({
 
   for (final task in availableServices) {
     for (final subtask in task.subtasks) {
-      if (subtask.id == selectedServiceId) {
+      if (subtask.id == selectedSubServiceId) {
         serviceName = subtask.name;
         break;
       }
@@ -139,6 +140,7 @@ Future<Map<String, dynamic>?> _showGroupScheduleDialog(
   int selectedServiceId = 0;
   int selectedTariffId = 0;
   int selectedTaskId = 0;
+  int selectedSubTaskId = 0;
 
   bool showValidationErrors = false;
 
@@ -188,6 +190,7 @@ Future<Map<String, dynamic>?> _showGroupScheduleDialog(
             'serviceId': selectedServiceId,
             'taskId': selectedTaskId,
             'tariffId': selectedTariffId,
+            'subServiceId': selectedSubTaskId,
           });
         }
 
@@ -288,22 +291,30 @@ Future<Map<String, dynamic>?> _showGroupScheduleDialog(
                       child: buildServiceSelector(
                         context,
                         availableTasks,
-                        selectedServiceId,
+                        selectedSubTaskId, // ✅ CAMBIAR: Usar selectedSubTaskId en lugar de selectedServiceId
                         (newSelection) {
-                          //  Buscar la Task padre de la subtarea seleccionada
+                          // ✅ OBTENER TANTO EL TASK ID COMO EL SUBTASK ID
                           int taskId = 0;
+                          int subtaskId =
+                              newSelection.id; // El ID real de la subtarea
+
+                          // Buscar la Task padre de la subtarea seleccionada
                           for (final task in availableTasks) {
                             if (task.subtasks.any(
                                 (subtask) => subtask.id == newSelection.id)) {
-                              taskId = task
-                                  .id; // Usar Task ID en lugar de SubTask ID
+                              taskId = task.id; // ID de la categoría padre
                               break;
                             }
                           }
 
                           setState(() {
-                            selectedServiceId = taskId; // Guardar Task ID
-                            selectedTariffId = newSelection.tariffs[0].id;
+                            selectedServiceId =
+                                taskId; // ✅ ID de la categoría (Task)
+                            selectedSubTaskId =
+                                subtaskId; // ✅ ID del servicio específico (SubTask)
+                            selectedTariffId = newSelection.tariffs.isNotEmpty
+                                ? newSelection.tariffs[0].id
+                                : 0;
                           });
                         },
                       ),

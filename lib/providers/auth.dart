@@ -184,7 +184,7 @@ class AuthProvider extends ChangeNotifier {
     debugPrint('🔑 [AuthProvider] Intentando auto-login');
 
     try {
-      // ✅ USAR MÉTODO SEGURO
+      //  USAR MÉTODO SEGURO
       final credentials = await _authStorage.getSafeCredentials();
       final username = credentials['username'];
       final password = credentials['password'];
@@ -195,7 +195,7 @@ class AuthProvider extends ChangeNotifier {
       }
 
       debugPrint(
-          '✅ [AuthProvider] Credenciales válidas encontradas, intentando login');
+          ' [AuthProvider] Credenciales válidas encontradas, intentando login');
       return await login(username, password, context);
     } catch (e) {
       debugPrint('❌ [AuthProvider] Error en tryAutoLogin: $e');

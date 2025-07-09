@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:intl/intl.dart';
 import 'package:plannerop/core/model/operation.dart';
@@ -20,7 +21,7 @@ Future<void> showCompletionDialog({
   required OperationsProvider provider,
 }) async {
   try {
-    // ✅ PRIMERO: Procesar todos los grupos uno por uno
+    //  PRIMERO: Procesar todos los grupos uno por uno
     for (var group in operation.groups) {
       // Convert worker IDs to Worker objects
       final workersProvider =
@@ -31,7 +32,7 @@ Future<void> showCompletionDialog({
           .cast<Worker>()
           .toList();
 
-      // ✅ ESPERAR a que se complete cada grupo individualmente
+      //  ESPERAR a que se complete cada grupo individualmente
       await _showAndWaitForGroupCompletion(
         context,
         operation,
@@ -41,7 +42,7 @@ Future<void> showCompletionDialog({
       );
     }
 
-    // ✅ DESPUÉS: Mostrar el diálogo de confirmación final
+    //  DESPUÉS: Mostrar el diálogo de confirmación final
     await _showFinalConfirmationDialog(context, operation, provider);
   } catch (e) {
     debugPrint('Error en showCompletionDialog: $e');
@@ -61,60 +62,49 @@ Future<void> _showAndWaitForGroupCompletion(
 ) async {
   final Completer<void> completer = Completer<void>();
 
+  final ID_UNIT_HOURS = int.parse(dotenv.get('ID_UNIT_HOURS') ?? '2');
+  final ID_UNIT_JORNAL = int.parse(dotenv.get('ID_UNIT_JORNAL') ?? '1');
+
   // Determinar qué tipo de diálogo mostrar según idUnitOfMeasure
-  switch (group.idUnitOfMeasure) {
-    case 1: // Jornada/Horas
-      await showJornalCompletionDialog(
-        context,
-        operation,
-        groupWorkers,
-        group.id ?? '',
-        provider,
-        () {
-          if (!completer.isCompleted) completer.complete();
-        },
-        group,
-      );
-      break;
-    case 2: // Por toneladas
-      await showTonnageCompletionDialog(
-        context,
-        operation,
-        groupWorkers,
-        group.id ?? '',
-        provider,
-        () {
-          if (!completer.isCompleted) completer.complete();
-        },
-        group,
-      );
-      break;
-    case 3: // Por contenedores
-      await showContainerCompletionDialog(
-        context,
-        operation,
-        groupWorkers,
-        group.id ?? '',
-        provider,
-        () {
-          if (!completer.isCompleted) completer.complete();
-        },
-        group,
-      );
-      break;
-    default:
-      // Diálogo genérico
-      showGroupCompletionDialog(
-        context,
-        operation,
-        groupWorkers,
-        group.id ?? '',
-        provider,
-        () {
-          if (!completer.isCompleted) completer.complete();
-        },
-      );
-      break;
+  if (group.idUnitOfMeasure == ID_UNIT_JORNAL ||
+      group.idUnitOfMeasure == ID_UNIT_HOURS) {
+    // Jornada/Horas
+    await showHoursCompletionDialog(
+      context,
+      operation,
+      groupWorkers,
+      group.id ?? '',
+      provider,
+      () {
+        if (!completer.isCompleted) completer.complete();
+      },
+      group,
+    );
+  } else if (group.idUnitOfMeasure == 3) {
+    // Por contenedores
+    await showContainerCompletionDialog(
+      context,
+      operation,
+      groupWorkers,
+      group.id ?? '',
+      provider,
+      () {
+        if (!completer.isCompleted) completer.complete();
+      },
+      group,
+    );
+  } else {
+    // Diálogo genérico
+    showGroupCompletionDialog(
+      context,
+      operation,
+      groupWorkers,
+      group.id ?? '',
+      provider,
+      () {
+        if (!completer.isCompleted) completer.complete();
+      },
+    );
   }
 
   // Esperar a que el diálogo se complete
@@ -248,7 +238,7 @@ Future<void> _showFinalConfirmationDialog(
 
 // FUNCIONES de diálogo específicas que retornan Future
 
-Future<void> showJornalCompletionDialog(
+Future<void> showHoursCompletionDialog(
   BuildContext context,
   Operation assignment,
   List<Worker> workers,
@@ -263,7 +253,7 @@ Future<void> showJornalCompletionDialog(
     context: context,
     barrierDismissible: false,
     builder: (BuildContext dialogContext) {
-      return JornalCompletionDialog(
+      return HoursCompletetion(
         onStateChanged: () {
           onStateChanged();
           Navigator.pop(dialogContext);

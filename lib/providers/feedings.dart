@@ -110,7 +110,7 @@ class FeedingProvider extends ChangeNotifier {
         _feedingStatus[operationId] ??= {};
         _feedingStatus[operationId]![workerId] ??= {};
 
-        // ✅ ALMACENAR REGISTRO COMPLETO CON ID
+        //  ALMACENAR REGISTRO COMPLETO CON ID
         _feedingStatus[operationId]![workerId]![foodType] = FeedingRecord(
           id: newFeedingId,
           isDelivered: true,

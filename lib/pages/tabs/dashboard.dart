@@ -117,12 +117,13 @@ class _DashboardTabState extends State<DashboardTab> {
               _isLoadingChargers = isLoading;
             },
           ),
-        loadClientProgramming(
-            isMounted: () => mounted,
-            setState: setState,
-            isLoadingClientProgramming: _isLoadingClientProgramming,
-            context: context,
-            forceRefresh: forceRefresh)
+        if (user.role != "GH")
+          loadClientProgramming(
+              isMounted: () => mounted,
+              setState: setState,
+              isLoadingClientProgramming: _isLoadingClientProgramming,
+              context: context,
+              forceRefresh: forceRefresh)
       ]).catchError((error) {
         debugPrint('Error durante la carga en paralelo: $error');
         if (mounted) {
@@ -210,7 +211,7 @@ class _DashboardTabState extends State<DashboardTab> {
         ),
       );
 
-      // ✅ USAR MÉTODO SIMPLE: Limpiar + Seleccionar + Recargar
+      //  USAR MÉTODO SIMPLE: Limpiar + Seleccionar + Recargar
       await _performSiteChange();
 
       // Cerrar loader
@@ -308,13 +309,14 @@ class _DashboardTabState extends State<DashboardTab> {
                     ),
                     Row(
                       children: [
-                        if (userProvider.user.role == "SUPERADMIN" ||
-                            userProvider.user.role == "ADMIN")
+                        if (userProvider.user.role != "SUPERVISOR")
                           IconButton(
                             icon: const Icon(Icons.swap_horiz,
                                 color: Colors.white),
                             onPressed: _isAnyLoading ? null : _changeSite,
-                            tooltip: 'Cambiar sede',
+                            tooltip: userProvider.user.role == "SUPERADMIN"
+                                ? 'Cambiar Sede'
+                                : 'Cambiar Sub-Sede',
                           ),
                         // Indicador de carga si es necesario
                         if (_isAnyLoading)
