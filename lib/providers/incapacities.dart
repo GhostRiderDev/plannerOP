@@ -15,15 +15,13 @@ class IncapacityProvider with ChangeNotifier {
   String get error => _error;
 
   // Registrar nueva incapacidad
-  Future<bool> registerIncapacity(
-      Incapacity incapacity, BuildContext context) async {
+  Future<bool> registerIncapacity(Incapacity incapacity) async {
     _isLoading = true;
     _error = '';
     notifyListeners();
 
     try {
-      final success =
-          await _incapacityService.registerIncapacity(incapacity, context);
+      final success = await _incapacityService.registerIncapacity(incapacity);
 
       if (success) {
         _incapacities.add(incapacity);
@@ -48,7 +46,6 @@ class IncapacityProvider with ChangeNotifier {
     int workerId,
     DateTime? startDate,
     DateTime? endDate,
-    BuildContext context,
   ) async {
     try {
       if (startDate == null || endDate == null) {
@@ -60,7 +57,6 @@ class IncapacityProvider with ChangeNotifier {
         workerId: workerId,
         dateDisableStart: startDate,
         dateDisableEnd: endDate,
-        context: context,
       );
 
       if (incapacities.isEmpty) {

@@ -1,29 +1,20 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:plannerop/core/model/operation.dart';
-import 'package:http/http.dart' as http;
 import 'package:plannerop/core/model/worker.dart';
 import 'package:plannerop/core/model/workerGroup.dart';
+import 'package:plannerop/core/network/httpClient.dart';
 import 'package:plannerop/dto/operations/createOperation.dart';
-import 'package:plannerop/providers/auth.dart';
-import 'package:plannerop/providers/workers.dart';
 import 'package:plannerop/utils/date.dart';
 import 'package:plannerop/utils/groups/groups.dart';
-import 'package:provider/provider.dart';
 
 class OperationService {
-  final String API_URL = dotenv.get('API_URL');
+  final ApiClient _apiClient = ApiClient();
 
   // Método para enviar operación al backend usando AuthProvider
-  Future<CreateOperationDto> createOperation(
-      Operation operation, BuildContext context) async {
+  Future<CreateOperationDto> createOperation(Operation operation) async {
     try {
-      // Obtener token del AuthProvider
-      final token =
-          Provider.of<AuthProvider>(context, listen: false).accessToken;
-
       // Crear el payload en el formato requerido por el backend
       final Map<String, dynamic> payload = {
         "status": operation.status.toUpperCase(),
@@ -59,13 +50,8 @@ class OperationService {
         payload['timeEnd'] = operation.endTime;
       }
 
-      var url = Uri.parse('$API_URL/operation');
-      var response = await http.post(url,
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Content-Type': 'application/json'
-          },
-          body: jsonEncode(payload));
+      var url = '/operation';
+      var response = await _apiClient.post(url, body: payload);
 
       if (response.statusCode == 201) {
         var body = jsonDecode(response.body);
@@ -85,54 +71,14 @@ class OperationService {
     }
   }
 
-  // Metodo para obtener las operaciones
-  Future<List<Operation>> fetchOperations(BuildContext context) async {
+  Future<bool> updateStatusOperation(int operationId, String status) async {
     try {
-      final token =
-          Provider.of<AuthProvider>(context, listen: false).accessToken;
+      var url = '/operation/$operationId';
 
-      var url = Uri.parse('$API_URL/operation');
-      var response =
-          await http.get(url, headers: {'Authorization': 'Bearer $token'});
-
-      var workersProvider =
-          Provider.of<WorkersProvider>(context, listen: false);
-      var workers = workersProvider.workers;
-
-      if (response.statusCode == 200) {
-        final jsonResponse = jsonDecode(response.body);
-        List<Operation> operations = [];
-        for (var operation in jsonResponse) {
-          var operationObj = Operation.fromJson(operation, workers);
-
-          operations.add(operationObj);
-        }
-        return operations;
-      } else {
-        debugPrint(
-            'Error al obtener asignaciones: ${response.statusCode} - ${response.body}');
-        return [];
-      }
-    } catch (e) {
-      debugPrint('Error en fetchAssignments: $e');
-      return [];
-    }
-  }
-
-  Future<bool> updateStatusOperation(
-      int operationId, String status, BuildContext context) async {
-    try {
-      final token =
-          Provider.of<AuthProvider>(context, listen: false).accessToken;
-
-      var url = Uri.parse('$API_URL/operation/$operationId');
-      var response = await http.patch(url,
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Content-Type': 'application/json'
-          },
-          body: jsonEncode(
-              {"status": status == 'IN_PROGRESS' ? 'INPROGRESS' : status}));
+      final payload = {
+        "status": status == 'IN_PROGRESS' ? 'INPROGRESS' : status
+      };
+      var response = await _apiClient.patch(url, body: payload);
       if (response.statusCode == 200) {
         return true;
       } else {
@@ -147,13 +93,8 @@ class OperationService {
   }
 
   // Método para actualizar una operación existente
-  Future<bool> updateOperation(
-      Operation operation, BuildContext context) async {
+  Future<bool> updateOperation(Operation operation) async {
     try {
-      // Obtener token del AuthProvider
-      final token =
-          Provider.of<AuthProvider>(context, listen: false).accessToken;
-
       if (operation.id == null) {
         debugPrint('Error: ID de operación no proporcionado');
         return false;
@@ -174,13 +115,8 @@ class OperationService {
         payload['timeEnd'] = operation.endTime;
       }
 
-      var url = Uri.parse('$API_URL/operation/${operation.id}');
-      var response = await http.patch(url,
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Content-Type': 'application/json'
-          },
-          body: jsonEncode(payload));
+      var url = '/operation/${operation.id}';
+      var response = await _apiClient.patch(url, body: payload);
 
       if (response.statusCode == 200) {
         return true;
@@ -196,14 +132,11 @@ class OperationService {
   }
 
 // Método para eliminar trabajadores de grupos de una operación (uno por uno)
-  Future<bool> removeGroupFromOperation(int operationId, BuildContext context,
-      Map<String, List<int>> workersGroups) async {
+  Future<bool> removeGroupFromOperation(
+      int operationId, Map<String, List<int>> workersGroups) async {
     try {
-      final token =
-          Provider.of<AuthProvider>(context, listen: false).accessToken;
-
       // Endpoint para eliminar trabajadores específicos de una operación
-      var url = Uri.parse('$API_URL/operation/$operationId');
+      var url = '/operation/$operationId';
 
       bool allSuccessful = true;
 
@@ -222,15 +155,7 @@ class OperationService {
             }
           };
 
-          debugPrint('Removiendo trabajador $workerId del grupo $groupId');
-          debugPrint('Body: ${jsonEncode(body)}');
-
-          var response = await http.patch(url,
-              headers: {
-                'Authorization': 'Bearer $token',
-                'Content-Type': 'application/json'
-              },
-              body: jsonEncode(body));
+          var response = await _apiClient.patch(url, body: body);
 
           if (response.statusCode == 200 || response.statusCode == 204) {
             debugPrint(
@@ -257,29 +182,10 @@ class OperationService {
 
 // Modificación de fetchOperationsByStatus para evitar duplicados de trabajadores
   Future<List<Operation>> fetchOperationsByStatus(
-      BuildContext context, List<String> statusList) async {
+      List<String> statusList, List<Worker> workers) async {
     try {
-      // Verificaciones iniciales
-      if (!context.mounted) {
-        return [];
-      }
-
-      final token =
-          Provider.of<AuthProvider>(context, listen: false).accessToken;
-      var url = Uri.parse(
-          '$API_URL/operation/by-status?status=${statusList.join(",")}');
-      var response =
-          await http.get(url, headers: {'Authorization': 'Bearer $token'});
-
-      if (!context.mounted) {
-        debugPrint(
-            'Context ya no está montado después de la llamada HTTP, abortando');
-        return [];
-      }
-
-      final workersProvider =
-          Provider.of<WorkersProvider>(context, listen: false);
-      final workers = workersProvider.workers;
+      var url = '/operation/by-status?status=${statusList.join(",")}';
+      var response = await _apiClient.get(url);
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
@@ -310,8 +216,6 @@ class OperationService {
               final groupId = group["groupId"];
               final idUnitOfMeasure = schedule["id_unit_of_measure"];
               final unitOfMeasure = schedule["unit_of_measure"];
-
-              debugPrint("schedule: $schedule");
 
               // Verificar si este grupo tiene un horario definido
               final hasSchedule = (dateStart != null && dateStart != "") ||
@@ -483,25 +387,18 @@ class OperationService {
     String status,
     DateTime endDate,
     String endTime,
-    BuildContext context,
   ) async {
     try {
-      final token =
-          Provider.of<AuthProvider>(context, listen: false).accessToken;
-
-      var url = Uri.parse('$API_URL/operation/$operationId');
       var body = {
         'status': status,
         'dateEnd': formatDate(endDate),
         'timeEnd': endTime,
       };
 
-      var response = await http.patch(url,
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Content-Type': 'application/json'
-          },
-          body: jsonEncode(body));
+      var response = await _apiClient.patch(
+        "/operation/$operationId",
+        body: body,
+      );
 
       if (response.statusCode == 200) {
         return true;
@@ -525,13 +422,10 @@ class OperationService {
     DateTime startDate,
     String startTime,
     String endTime,
-    BuildContext context,
   ) async {
     try {
-      final token =
-          Provider.of<AuthProvider>(context, listen: false).accessToken;
+      var url = '/operation/$operationId';
 
-      var url = Uri.parse('$API_URL/operation/$operationId');
       var body = {
         "workers": {
           "update": [
@@ -547,13 +441,9 @@ class OperationService {
         }
       };
 
-      var response = await http.patch(
+      var response = await _apiClient.patch(
         url,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json'
-        },
-        body: jsonEncode(body),
+        body: body,
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -579,14 +469,10 @@ class OperationService {
   Future<bool> connectWorkersToOperation(
       int operationId,
       List<int> individualWorkerIds,
-      List<Map<String, dynamic>> groupsToConnect,
-      BuildContext context) async {
+      List<Map<String, dynamic>> groupsToConnect) async {
     try {
-      final token =
-          Provider.of<AuthProvider>(context, listen: false).accessToken;
-
       // Endpoint para actualizar la operación
-      var url = Uri.parse('$API_URL/operation/$operationId');
+      final url = '/operation/$operationId';
 
       // Preparar la estructura de la solicitud
       Map<String, dynamic> body = {
@@ -610,12 +496,7 @@ class OperationService {
         });
       }
 
-      var response = await http.patch(url,
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Content-Type': 'application/json'
-          },
-          body: jsonEncode(body));
+      var response = await _apiClient.patch(url, body: body);
 
       if (response.statusCode == 200 || response.statusCode == 204) {
         return true;

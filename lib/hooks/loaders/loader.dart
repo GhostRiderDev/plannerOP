@@ -250,7 +250,7 @@ Future<void> loadAreas({
 
   try {
     // Llamar al método fetchAreas con await para asegurar que se complete
-    await areasProvider.fetchAreas(context);
+    await areasProvider.fetchAreas();
   } catch (e, stackTrace) {
     debugPrint('Stack trace: $stackTrace');
 
@@ -413,7 +413,7 @@ Future<bool> loadClients({
   }
 
   try {
-    await clientsProvider.fetchClients(context);
+    await clientsProvider.fetchClients();
 
     if (clientsProvider.clients.isNotEmpty) {
       return true;

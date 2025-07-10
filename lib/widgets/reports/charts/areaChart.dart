@@ -42,8 +42,6 @@ class _AreaDistributionChartState
   @override
   List<AreaData> processAssignmentData(List<Operation> assignments) {
     try {
-      debugPrint('AreaChart: Procesando ${assignments.length} operaciones');
-
       var filteredAssignments = assignments.where((assignment) {
         // Aplicar filtros adicionales
         if (widget.area != "Todas" && assignment.area != widget.area) {
@@ -155,8 +153,6 @@ class _AreaDistributionChartState
         },
       ).length;
 
-      debugPrint('AreaChart: Total de personal único: $totalPersonnel');
-
       for (var entry in sortedEntries) {
         final areaName = entry.key;
         final assignments = entry.value;
@@ -176,9 +172,6 @@ class _AreaDistributionChartState
           percentage = (personnelCount / totalPersonnel) * 100;
         }
 
-        debugPrint(
-            'AreaChart: Área $areaName - $personnelCount trabajadores, $totalAssignments operaciones');
-
         result.add(AreaData(
           name: areaName,
           personnel: personnelCount,
@@ -190,11 +183,6 @@ class _AreaDistributionChartState
         ));
 
         colorIndex++;
-      }
-
-      debugPrint('AreaChart: Resultado final: ${result.length} áreas');
-      for (var area in result) {
-        debugPrint('  - ${area.name}: ${area.value} trabajadores');
       }
 
       return result;

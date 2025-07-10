@@ -72,7 +72,6 @@ class _HourlyDistributionChartState
 
       final distributionResponse =
           await _operationsService.fetchHourlyDistribution(
-        context,
         widget.startDate,
       );
 

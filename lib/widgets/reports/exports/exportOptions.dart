@@ -91,7 +91,6 @@ class _ExportOptionsState extends State<ExportOptions> {
       }
 
       final operations = await _operationsService.fetchOperationsByDateRange(
-        context,
         widget.startDate,
         widget.endDate,
         statuses: apiStatuses,
@@ -304,8 +303,8 @@ class _ExportOptionsState extends State<ExportOptions> {
               decoration: BoxDecoration(
                 color: const Color(0xFF3182CE).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border:
-                    Border.all(color: const Color(0xFF3182CE).withValues(alpha: 0.2)),
+                border: Border.all(
+                    color: const Color(0xFF3182CE).withValues(alpha: 0.2)),
               ),
               child: Column(
                 children: [

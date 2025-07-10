@@ -1,18 +1,16 @@
 import 'dart:convert';
 
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
 import 'package:plannerop/core/model/client.dart';
+import 'package:plannerop/core/network/httpClient.dart';
 import 'package:plannerop/dto/clients/fetchClients.dart';
 
 class ClientService {
-  final String API_URL = dotenv.get('API_URL');
+  final ApiClient _apiClient = ApiClient();
 
-  Future<FetchclientsDto> fetchClients(String token) async {
-    var url = Uri.parse(API_URL + '/client');
+  Future<FetchclientsDto> fetchClients() async {
+    var url = '/client';
 
-    var response =
-        await http.get(url, headers: {'Authorization': 'Bearer $token'});
+    var response = await _apiClient.get(url);
     if (response.statusCode == 200) {
       final jsonResponse = jsonDecode(response.body);
       List<Client> clients = [];

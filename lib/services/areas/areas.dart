@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 import 'package:plannerop/core/model/area.dart';
+import 'package:plannerop/core/network/httpClient.dart';
 
 class AreaService {
-  final String API_URL = dotenv.get('API_URL');
-  Future<List<Area>> fetchAreas(String token) async {
-    var url = Uri.parse(API_URL + '/area');
+  final ApiClient _apiClient = ApiClient();
 
-    var response =
-        await http.get(url, headers: {'Authorization': 'Bearer $token'});
+  Future<List<Area>> fetchAreas() async {
+    var url = '/area';
+
+    var response = await _apiClient.get(url);
 
     if (response.statusCode == 200) {
       final jsonResponse = jsonDecode(response.body);

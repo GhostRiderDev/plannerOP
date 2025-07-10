@@ -54,7 +54,7 @@ Future<void> tryAutoLogin(bool mounted, Function setState, bool _isLoading,
 
           // VERIFICAR QUE REALMENTE SE SELECCIONÓ UN SITE
           if (userProvider.selectedSite == null) {
-            debugPrint('❌ No se seleccionó sede durante auto-login');
+            debugPrint('No se seleccionó sede durante auto-login');
 
             //  LIMPIAR CREDENCIALES PARA EVITAR BUCLE DE ERROR
             await authStorageService.clearCredentials();
@@ -68,7 +68,7 @@ Future<void> tryAutoLogin(bool mounted, Function setState, bool _isLoading,
             return;
           }
         } catch (siteSelectionError) {
-          debugPrint('❌ Error en selección de sede: $siteSelectionError');
+          debugPrint('Error en selección de sede: $siteSelectionError');
 
           //  SI HAY ERROR DE ENCRIPTACIÓN, LIMPIAR CREDENCIALES
           if (siteSelectionError
@@ -326,7 +326,7 @@ Future<void> login(GlobalKey<FormState> _formKey, BuildContext context,
             isMounted: () => mounted,
           );
         } catch (e) {
-          debugPrint('❌ Error cargando datos: $e');
+          debugPrint('Error cargando datos: $e');
         }
 
         // Navegar al dashboard

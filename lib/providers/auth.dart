@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:plannerop/core/network/httpClient.dart';
 import 'package:plannerop/services/auth/authStorageService.dart';
 import 'package:plannerop/services/auth/signin.dart';
 import 'package:plannerop/providers/areas.dart';
@@ -94,6 +95,7 @@ class AuthProvider extends ChangeNotifier {
       if (response.isSuccess) {
         _accessToken = response.accessToken;
         _isAuthenticated = true;
+        ApiClient().setToken(response.accessToken);
 
         // Guardar credenciales encriptadas
         await _authStorage.saveCredentials(
@@ -135,7 +137,7 @@ class AuthProvider extends ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      debugPrint('❌ [AuthProvider] Error limpiando providers: $e');
+      debugPrint('[AuthProvider] Error limpiando providers: $e');
     }
   }
 
@@ -147,19 +149,10 @@ class AuthProvider extends ChangeNotifier {
       _accessToken = '';
       _isAuthenticated = false;
 
-      //  VERIFICAR ANTES DE LIMPIAR
-      debugPrint("🔍 [AuthProvider] Estado antes de limpiar providers:");
-      debugPrint("Operations count: ${_operationsProvider.operations.length}");
-
       //  LIMPIAR OPERATIONS PROVIDER CON VERIFICACIÓN
       _operationsProvider.clear();
 
-      //  VERIFICAR DESPUÉS DE LIMPIAR
-      debugPrint(
-          "🔍 [AuthProvider] Estado después de limpiar OperationsProvider:");
-      debugPrint("Operations count: ${_operationsProvider.operations.length}");
-      debugPrint(
-          "InProgress count: ${_operationsProvider.inProgressOperations.length}");
+      ApiClient().setToken(null);
 
       // Limpiar otros providers
       _areasProvider.clear();
@@ -172,10 +165,9 @@ class AuthProvider extends ChangeNotifier {
       _tasksProvider.clear();
       _userProvider.clear();
 
-      debugPrint(" [AuthProvider] Logout completado");
       notifyListeners();
     } catch (e) {
-      debugPrint('❌ [AuthProvider] Error en logout: $e');
+      debugPrint('[AuthProvider] Error en logout: $e');
     }
   }
 
@@ -198,7 +190,7 @@ class AuthProvider extends ChangeNotifier {
           ' [AuthProvider] Credenciales válidas encontradas, intentando login');
       return await login(username, password, context);
     } catch (e) {
-      debugPrint('❌ [AuthProvider] Error en tryAutoLogin: $e');
+      debugPrint('[AuthProvider] Error en tryAutoLogin: $e');
       return false;
     }
   }
@@ -233,6 +225,8 @@ class AuthProvider extends ChangeNotifier {
 
         // AQUÍ ESTABA EL ERROR: No se actualizaba el token
         _accessToken = newToken;
+
+        ApiClient().setToken(newToken);
 
         // Actualizar el token en el storage
         await _authStorage.saveCredentials(

@@ -291,9 +291,9 @@ Future<Map<String, dynamic>?> _showGroupScheduleDialog(
                       child: buildServiceSelector(
                         context,
                         availableTasks,
-                        selectedSubTaskId, // ✅ CAMBIAR: Usar selectedSubTaskId en lugar de selectedServiceId
+                        selectedSubTaskId, //  CAMBIAR: Usar selectedSubTaskId en lugar de selectedServiceId
                         (newSelection) {
-                          // ✅ OBTENER TANTO EL TASK ID COMO EL SUBTASK ID
+                          //  OBTENER TANTO EL TASK ID COMO EL SUBTASK ID
                           int taskId = 0;
                           int subtaskId =
                               newSelection.id; // El ID real de la subtarea
@@ -309,9 +309,9 @@ Future<Map<String, dynamic>?> _showGroupScheduleDialog(
 
                           setState(() {
                             selectedServiceId =
-                                taskId; // ✅ ID de la categoría (Task)
+                                taskId; //  ID de la categoría (Task)
                             selectedSubTaskId =
-                                subtaskId; // ✅ ID del servicio específico (SubTask)
+                                subtaskId; //  ID del servicio específico (SubTask)
                             selectedTariffId = newSelection.tariffs.isNotEmpty
                                 ? newSelection.tariffs[0].id
                                 : 0;

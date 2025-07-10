@@ -48,7 +48,7 @@ class SiteSelector {
   /// Cargar sedes disponibles (reemplazar con tu API)
   Future<List<Site>> _loadAvailableSites(BuildContext context) async {
     try {
-      final sites = await _siteService.getAllSites(context);
+      final sites = await _siteService.getAllSites();
 
       return sites.map((site) {
         // Verificar que el site tenga las propiedades esperadas
@@ -78,7 +78,7 @@ class SiteSelector {
         );
       }).toList();
     } catch (e) {
-      debugPrint('❌ Error al cargar sites: $e');
+      debugPrint('Error al cargar sites: $e');
       return [];
     }
   }

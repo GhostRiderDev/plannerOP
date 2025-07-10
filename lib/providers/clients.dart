@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:plannerop/services/clients/clients.dart';
 import 'package:plannerop/core/model/client.dart';
-import 'package:plannerop/providers/auth.dart';
-import 'package:provider/provider.dart';
 
 class ClientsProvider with ChangeNotifier {
   List<Client> _clients = [];
@@ -17,12 +15,9 @@ class ClientsProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> fetchClients(BuildContext context) async {
-    var authProvider = Provider.of<AuthProvider>(context, listen: false);
-    var token = authProvider.accessToken;
-
+  Future<void> fetchClients() async {
     try {
-      var fetchClientsDto = await _clientService.fetchClients(token);
+      var fetchClientsDto = await _clientService.fetchClients();
       if (fetchClientsDto.isSuccess) {
         _clients = fetchClientsDto.clients;
         notifyListeners();

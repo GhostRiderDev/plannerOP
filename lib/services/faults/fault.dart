@@ -4,36 +4,19 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:plannerop/core/model/fault.dart';
 import 'package:plannerop/core/model/worker.dart';
+import 'package:plannerop/core/network/httpClient.dart';
 import 'package:plannerop/providers/auth.dart';
 import 'package:plannerop/providers/workers.dart';
 import 'package:provider/provider.dart';
 
 class FaultService {
-  final String API_URL = dotenv.get('API_URL');
+  final ApiClient _apiClient = ApiClient();
 
   // Método para obtener todas las faltas desde la API
-  Future<List<Fault>> fetchFaults(BuildContext context) async {
+  Future<List<Fault>> fetchFaults(List<Worker> workers) async {
     try {
-      if (!context.mounted) {
-        debugPrint('Context no está montado, abortando fetchFaults');
-        return [];
-      }
-
-      final token =
-          Provider.of<AuthProvider>(context, listen: false).accessToken;
-      final workersProvider =
-          Provider.of<WorkersProvider>(context, listen: false);
-      final workers = workersProvider.workers;
-
-      var url = Uri.parse('$API_URL/called-attention');
-      var response =
-          await http.get(url, headers: {'Authorization': 'Bearer $token'});
-
-      if (!context.mounted) {
-        debugPrint(
-            'Context ya no está montado después de la llamada HTTP, abortando');
-        return [];
-      }
+      var url = '/called-attention';
+      var response = await _apiClient.get(url);
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
@@ -100,31 +83,20 @@ class FaultService {
   }
 
   // Mantener el método original y añadir soporte para descripción
-  Future<bool> registerFault(Worker worker, BuildContext context,
-      {String? description}) async {
+  Future<bool> registerFault(Worker worker, {String? description}) async {
     try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final String token = authProvider.accessToken;
-
-      if (token.isEmpty) {
-        debugPrint('No hay token disponible');
-        return false;
-      }
+      final payload = {
+        'description': description,
+        'type': 'INASSISTANCE',
+        'id_worker': worker.id,
+      };
 
       // Si se proporcionó una descripción, registrar también la falta como incidente
       if (description != null && description.isNotEmpty) {
-        var faultUrl = Uri.parse('$API_URL/called-attention');
-        var faultResponse = await http.post(
+        var faultUrl = '/called-attention';
+        var faultResponse = await _apiClient.post(
           faultUrl,
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Content-Type': 'application/json'
-          },
-          body: jsonEncode({
-            'description': description,
-            'type': 'INASSISTANCE',
-            'id_worker': worker.id,
-          }),
+          body: payload,
         );
 
         if (!(faultResponse.statusCode >= 200 &&
@@ -142,30 +114,15 @@ class FaultService {
   }
 
   // Nuevo método para registrar abandono de trabajo
-  Future<bool> registerAbandonment(Worker worker, BuildContext context,
-      {String? description}) async {
+  Future<bool> registerAbandonment(Worker worker, {String? description}) async {
     try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final String token = authProvider.accessToken;
-
-      if (token.isEmpty) {
-        debugPrint('No hay token disponible');
-        return false;
-      }
-
       // Primero actualiza el contador de faltas en el worker
-      var workerUrl = Uri.parse('$API_URL/worker/${worker.id}');
-      var workerResponse = await http.patch(
-        workerUrl,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json'
-        },
-        body: jsonEncode({
-          'failures': worker.failures + 1,
-        }),
-      );
-
+      final workerUrl = '/worker/${worker.id}';
+      final payloadWorker = {
+        'failures': worker.failures + 1,
+      };
+      var workerResponse =
+          await _apiClient.patch(workerUrl, body: payloadWorker);
 
       if (!(workerResponse.statusCode >= 200 &&
           workerResponse.statusCode < 300)) {
@@ -177,22 +134,14 @@ class FaultService {
         return false;
       }
 
-      var faultUrl = Uri.parse('$API_URL/called-attention');
-      var response = await http.post(
-        faultUrl,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json'
-        },
-        body: jsonEncode({
-          'description': description,
-          'type': 'ABANDONMENT',
-          'id_worker': worker.id,
-        }),
-      );
-
-      // debugPrint(
-      //     'Abandonment API Response: ${response.statusCode} - ${response.body}');
+      var faultUrl = '/called-attention';
+      final payloadCalledAttention = {
+        'description': description,
+        'type': 'ABANDONMENT',
+        'id_worker': worker.id,
+      };
+      var response =
+          await _apiClient.post(faultUrl, body: payloadCalledAttention);
 
       return response.statusCode >= 200 && response.statusCode < 300;
     } catch (e) {
@@ -214,16 +163,13 @@ class FaultService {
       }
 
       // Primero actualiza el contador de faltas en el worker
-      var workerUrl = Uri.parse('$API_URL/worker/${worker.id}');
-      var workerResponse = await http.patch(
+      var workerUrl = '/worker/${worker.id}';
+      final payload = {
+        'failures': worker.failures + 1,
+      };
+      var workerResponse = await _apiClient.patch(
         workerUrl,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json'
-        },
-        body: jsonEncode({
-          'failures': worker.failures + 1,
-        }),
+        body: payload,
       );
 
       // debugPrint(
@@ -240,22 +186,16 @@ class FaultService {
         return false;
       }
 
-      var faultUrl = Uri.parse('$API_URL/called-attention');
-      var response = await http.post(
+      var faultUrl = '/called-attention';
+      final payloadCalledAttention = {
+        'description': description,
+        'type': 'IRRESPECTFUL',
+        'id_worker': worker.id,
+      };
+      var response = await _apiClient.post(
         faultUrl,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json'
-        },
-        body: jsonEncode({
-          'description': description,
-          'type': 'IRRESPECTFUL',
-          'id_worker': worker.id,
-        }),
+        body: payloadCalledAttention,
       );
-
-      // debugPrint(
-      //     'Disrespect API Response: ${response.statusCode} - ${response.body}');
 
       return response.statusCode >= 200 && response.statusCode < 300;
     } catch (e) {

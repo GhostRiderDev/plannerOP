@@ -1,21 +1,17 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:plannerop/core/model/operation.dart';
 import 'package:plannerop/core/model/worker.dart';
 import 'package:plannerop/core/model/workerGroup.dart';
-import 'package:plannerop/providers/auth.dart';
+import 'package:plannerop/core/network/httpClient.dart';
 import 'package:plannerop/utils/charts/chartData.dart';
-import 'package:provider/provider.dart';
 
 class PaginatedOperationsService {
-  final String API_URL = dotenv.get('API_URL');
+  final ApiClient _apiClient = ApiClient();
 
   /// Obtener operaciones paginadas por rango de fechas y estado
   Future<List<Operation>> fetchOperationsByDateRange(
-    BuildContext context,
     DateTime startDate,
     DateTime endDate, {
     List<String>? statuses, // Lista de estados
@@ -23,14 +19,6 @@ class PaginatedOperationsService {
     int limit = 100, // Por defecto traer muchos registros
   }) async {
     try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final String token = authProvider.accessToken;
-
-      if (token.isEmpty) {
-        debugPrint('No hay token disponible');
-        return [];
-      }
-
       // Formatear las fechas para la API (YYYY-MM-DD)
       final String formattedStartDate =
           DateFormat('yyyy-MM-dd').format(startDate);
@@ -46,30 +34,20 @@ class PaginatedOperationsService {
 
       // Agregar parámetros de estado si se proporcionan
       if (statuses != null && statuses.isNotEmpty) {
-        // Enviar cada estado como parámetro separado o como string separado por comas
-        // Opción 1: Como string separado por comas
         queryParams['status'] = statuses.join(',');
-
-        // Opción 2: Si la API espera múltiples parámetros status
-        // for (int i = 0; i < statuses.length; i++) {
-        //   queryParams['status[$i]'] = statuses[i];
-        // }
       }
 
-      // Construir URI con parámetros
-      final Uri url = Uri.parse('$API_URL/operation/paginated').replace(
-        queryParameters: queryParams,
-      );
+      // Construir URL con parámetros como string
+      String url = '/operation/paginated';
+      if (queryParams.isNotEmpty) {
+        url += '?';
+        url += queryParams.entries
+            .map((entry) => '${entry.key}=${entry.value}')
+            .join('&');
+      }
 
-      debugPrint('Fetching operations: $url');
-      debugPrint('Query parameters: $queryParams');
-
-      final response = await http.get(
+      final response = await _apiClient.get(
         url,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
       );
 
       if (response.statusCode == 200) {
@@ -81,9 +59,6 @@ class PaginatedOperationsService {
         return items
             .map((operationData) => _parseOperation(operationData))
             .toList();
-      } else if (response.statusCode == 401) {
-        authProvider.logout();
-        throw Exception('Token no válido');
       } else {
         debugPrint(
             'Error al obtener operaciones: ${response.statusCode} - ${response.body}');
@@ -96,29 +71,19 @@ class PaginatedOperationsService {
   }
 
   Future<HourlyDistributionResponse?> fetchHourlyDistribution(
-    BuildContext context,
     DateTime date,
   ) async {
     try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final token = authProvider.accessToken;
-
       // Formatear fecha para la API
       final formattedDate =
           "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
 
-      final url = Uri.parse(
-          '$API_URL/operation/analytics/worker-distribution?date=$formattedDate');
+      final url =
+          '/operation/analytics/worker-distribution?date=$formattedDate';
 
       debugPrint('Fetching hourly distribution from: $url');
 
-      final response = await http.get(
-        url,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
+      final response = await _apiClient.get(url);
 
       debugPrint('Response status: ${response.statusCode}');
       debugPrint('Response body: ${response.body}');

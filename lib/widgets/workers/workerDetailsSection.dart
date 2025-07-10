@@ -79,7 +79,6 @@ class _WorkerDetailsSectionState extends State<WorkerDetailsSection> {
         widget.worker.id,
         widget.worker.incapacityStartDate,
         widget.worker.incapacityEndDate,
-        context,
       );
 
       if (mounted) {

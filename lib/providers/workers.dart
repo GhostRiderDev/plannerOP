@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:plannerop/core/model/incapacity.dart';
+import 'package:plannerop/core/model/user.dart';
 import 'package:plannerop/core/model/worker.dart';
+import 'package:plannerop/providers/user.dart';
 import 'package:plannerop/services/faults/fault.dart';
 import 'package:plannerop/services/workers/workers.dart';
 import 'package:plannerop/dto/workers/fetchWorkers.dart';
@@ -92,7 +94,7 @@ class WorkersProvider with ChangeNotifier {
 
     try {
       // debugPrint('Cargando trabajadores desde API (primera vez)...');
-      final FetchWorkersDto result = await _workerService.fetchWorkers(context);
+      final FetchWorkersDto result = await _workerService.fetchWorkers();
 
       if (result.isSuccess && result.workers.isNotEmpty) {
         _workers.clear();
@@ -120,8 +122,10 @@ class WorkersProvider with ChangeNotifier {
   Future<Map<String, dynamic>> addWorker(
       Worker worker, BuildContext context) async {
     try {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final User user = userProvider.user;
       // Llamar al servicio y esperar respuesta
-      final result = await _workerService.registerWorker(worker, context);
+      final result = await _workerService.registerWorker(worker, user.id);
 
       // Si fue exitoso, agregar a la lista local
       if (result['success']) {
@@ -229,7 +233,7 @@ class WorkersProvider with ChangeNotifier {
         );
 
         final incapacitySuccess =
-            await incapacityProvider.registerIncapacity(incapacity, context);
+            await incapacityProvider.registerIncapacity(incapacity);
         if (!incapacitySuccess) {
           debugPrint('Error al registrar incapacidad en /inability');
           return false;

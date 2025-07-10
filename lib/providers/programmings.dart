@@ -97,15 +97,13 @@ class ProgrammingsProvider extends ChangeNotifier {
 
     try {
       final programmingsToday =
-          await _programmingsService.getProgrammingsByDate(date, context);
+          await _programmingsService.getProgrammingsByDate(date);
 
       final programmingsTomorrow =
-          await _programmingsService.getProgrammingsByDate(
-              DateTime.now()
-                  .add(const Duration(days: 1))
-                  .toIso8601String()
-                  .split('T')[0],
-              context);
+          await _programmingsService.getProgrammingsByDate(DateTime.now()
+              .add(const Duration(days: 1))
+              .toIso8601String()
+              .split('T')[0]);
 
       // Asegurarse de que estemos fuera del ciclo de construcción
       _programmings = [...programmingsToday, ...programmingsTomorrow];
@@ -163,15 +161,13 @@ class ProgrammingsProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final programmingsToday = await _programmingsService
-          .getProgrammingsByDate(dateToFetch, context);
+      final programmingsToday =
+          await _programmingsService.getProgrammingsByDate(dateToFetch);
       final programmingsTomorrow =
-          await _programmingsService.getProgrammingsByDate(
-              DateTime.now()
-                  .add(const Duration(days: 1))
-                  .toIso8601String()
-                  .split('T')[0],
-              context);
+          await _programmingsService.getProgrammingsByDate(DateTime.now()
+              .add(const Duration(days: 1))
+              .toIso8601String()
+              .split('T')[0]);
 
       // Limpiar la lista actual y cargar nuevas programaciones
       _programmings.clear();

@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
@@ -10,234 +9,251 @@ import 'package:plannerop/core/model/workerGroup.dart';
 import 'package:plannerop/providers/operations.dart';
 import 'package:plannerop/providers/workers.dart';
 import 'package:plannerop/utils/toast.dart';
-import 'package:plannerop/widgets/operations/components/completationDialogs/jornalCompletation.dart';
-import 'package:plannerop/widgets/operations/components/utils/Loader.dart';
+import 'package:plannerop/widgets/operations/components/completationDialogs/hoursCompletetion.dart';
 import 'package:provider/provider.dart';
 
-// HACER la función async y restructurar el flujo
+//SIMPLIFICAR: Función principal SIN NAVIGATOR.POP PREMATURO
 Future<void> showCompletionDialog({
   required BuildContext context,
   required Operation operation,
   required OperationsProvider provider,
 }) async {
+  //CAPTURAR NAVIGATOR AL INICIO
+  final navigator = Navigator.of(context);
+
   try {
-    //  PRIMERO: Procesar todos los grupos uno por uno
-    for (var group in operation.groups) {
-      // Convert worker IDs to Worker objects
-      final workersProvider =
-          Provider.of<WorkersProvider>(context, listen: false);
+    final workersProvider =
+        Provider.of<WorkersProvider>(context, listen: false);
+
+    if (!context.mounted) {
+      debugPrint('Context no montado al inicio');
+      return;
+    }
+
+    //PROCESAR cada grupo SECUENCIALMENTE
+    for (int i = 0; i < operation.groups.length; i++) {
+      final group = operation.groups[i];
+      ;
+
       List<Worker> groupWorkers = group.workers
           .map((workerId) => workersProvider.getWorkerById(workerId))
           .where((worker) => worker != null)
           .cast<Worker>()
           .toList();
 
-      //  ESPERAR a que se complete cada grupo individualmente
-      await _showAndWaitForGroupCompletion(
+      //USAR COMPLETER PARA CONTROL PRECISO
+      final Completer<bool> groupCompleter = Completer<bool>();
+
+      final completed = await _processGroup(
         context,
         operation,
         groupWorkers,
         group,
         provider,
+        groupCompleter,
       );
+
+      if (!completed) {
+        debugPrint('Grupo ${group.id} no completado, abortando');
+        if (context.mounted) {
+          showErrorToast(context,
+              'No se pudo completar el grupo ${group.name ?? group.id}');
+        }
+        return;
+      }
     }
 
-    //  DESPUÉS: Mostrar el diálogo de confirmación final
-    await _showFinalConfirmationDialog(context, operation, provider);
+    //COMPLETAR operación FINAL
+    await _completeOperationFinal(context, operation, provider);
+
+    //CERRAR DIALOGO SOLO AL FINAL
+    if (navigator.mounted) {
+      navigator.pop();
+    }
   } catch (e) {
-    debugPrint('Error en showCompletionDialog: $e');
+    debugPrint('💥 Error en showCompletionDialog: $e');
     if (context.mounted) {
       showErrorToast(context, 'Error al procesar la operación: $e');
     }
   }
 }
 
-// FUNCIÓN para manejar cada grupo y esperar su finalización
-Future<void> _showAndWaitForGroupCompletion(
+//PROCESAR GRUPO CON COMPLETER
+Future<bool> _processGroup(
   BuildContext context,
   Operation operation,
   List<Worker> groupWorkers,
   WorkerGroup group,
   OperationsProvider provider,
+  Completer<bool> completer,
 ) async {
-  final Completer<void> completer = Completer<void>();
+  try {
+    final ID_UNIT_HOURS = int.parse(dotenv.get('ID_UNIT_HOURS') ?? '2');
+    final ID_UNIT_JORNAL = int.parse(dotenv.get('ID_UNIT_JORNAL') ?? '1');
 
-  final ID_UNIT_HOURS = int.parse(dotenv.get('ID_UNIT_HOURS') ?? '2');
-  final ID_UNIT_JORNAL = int.parse(dotenv.get('ID_UNIT_JORNAL') ?? '1');
+    if (!context.mounted) {
+      debugPrint('Context desmontado antes de procesar grupo');
+      return false;
+    }
 
-  // Determinar qué tipo de diálogo mostrar según idUnitOfMeasure
-  if (group.idUnitOfMeasure == ID_UNIT_JORNAL ||
-      group.idUnitOfMeasure == ID_UNIT_HOURS) {
-    // Jornada/Horas
-    await showHoursCompletionDialog(
-      context,
-      operation,
-      groupWorkers,
-      group.id ?? '',
-      provider,
-      () {
-        if (!completer.isCompleted) completer.complete();
-      },
-      group,
-    );
-  } else if (group.idUnitOfMeasure == 3) {
-    // Por contenedores
-    await showContainerCompletionDialog(
-      context,
-      operation,
-      groupWorkers,
-      group.id ?? '',
-      provider,
-      () {
-        if (!completer.isCompleted) completer.complete();
-      },
-      group,
-    );
-  } else {
-    // Diálogo genérico
-    showGroupCompletionDialog(
-      context,
-      operation,
-      groupWorkers,
-      group.id ?? '',
-      provider,
-      () {
-        if (!completer.isCompleted) completer.complete();
-      },
-    );
+    if (group.idUnitOfMeasure == ID_UNIT_JORNAL ||
+        group.idUnitOfMeasure == ID_UNIT_HOURS) {
+      //MOSTRAR DIÁLOGO DE HORAS
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext dialogContext) {
+          return HoursCompletetion(
+            group: group,
+            onStateChanged: () {
+              //CERRAR SOLO EL DIÁLOGO DE HORAS
+              Navigator.of(dialogContext).pop();
+              //COMPLETAR COMPLETER
+              if (!completer.isCompleted) {
+                completer.complete(true);
+              }
+            },
+          );
+        },
+      );
+
+      //ESPERAR RESULTADO CON TIMEOUT
+      return await completer.future.timeout(
+        Duration(minutes: 5),
+        onTimeout: () {
+          debugPrint('⏰ Timeout procesando grupo ${group.id}');
+          return false;
+        },
+      );
+    } else if (group.idUnitOfMeasure == 4) {
+      return await _showSimpleContainerDialog(context);
+    } else {
+      return await _showSimpleGenericDialog(context, group);
+    }
+  } catch (e) {
+    debugPrint('💥 Error procesando grupo ${group.id}: $e');
+    return false;
   }
-
-  // Esperar a que el diálogo se complete
-  return completer.future;
 }
 
-// DIÁLOGO de confirmación final
-Future<void> _showFinalConfirmationDialog(
+//COMPLETAR OPERACIÓN FINAL
+Future<void> _completeOperationFinal(
   BuildContext context,
   Operation operation,
   OperationsProvider provider,
 ) async {
-  final Completer<void> completer = Completer<void>();
-  bool isProcessing = false;
-
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (BuildContext dialogContext) {
-      return StatefulBuilder(
-        builder: (context, setDialogState) {
-          return AlertDialog(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Text('Completar operación'),
-            content: const Text(
-              '¿Estás seguro de que deseas marcar esta operación como completada?',
-              style: TextStyle(color: Color(0xFF718096)),
+  try {
+    //MOSTRAR LOADER SIN CERRAR CONTEXTO
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (loaderContext) => WillPopScope(
+        onWillPop: () async => false,
+        child: AlertDialog(
+          content: Container(
+            padding: EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Completando operación...',
+                    style: TextStyle(fontSize: 16)),
+                SizedBox(height: 8),
+                Text('Por favor espera',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+              ],
             ),
-            actions: [
-              TextButton(
-                onPressed: isProcessing
-                    ? null
-                    : () {
-                        Navigator.pop(dialogContext);
-                        if (!completer.isCompleted) completer.complete();
-                      },
-                style: TextButton.styleFrom(
-                  foregroundColor: isProcessing
-                      ? const Color(0xFFCBD5E0)
-                      : const Color(0xFF718096),
-                ),
-                child: const Text('Cancelar'),
-              ),
-              NeumorphicButton(
-                style: NeumorphicStyle(
-                  depth: isProcessing ? 0 : 2,
-                  intensity: 0.7,
-                  color: isProcessing
-                      ? const Color(0xFF9AE6B4)
-                      : const Color(0xFF38A169),
-                  boxShape:
-                      NeumorphicBoxShape.roundRect(BorderRadius.circular(8)),
-                ),
-                onPressed: isProcessing
-                    ? null
-                    : () async {
-                        setDialogState(() {
-                          isProcessing = true;
-                        });
+          ),
+        ),
+      ),
+    );
 
-                        try {
-                          final now = DateTime.now();
-                          final currentTime = DateFormat('HH:mm').format(now);
+    //COMPLETAR operación
+    final now = DateTime.now();
+    final currentTime = DateFormat('HH:mm').format(now);
+    final endTimeToSave =
+        operation.endTime?.isNotEmpty == true ? operation.endTime : currentTime;
 
-                          var endTimeToSave =
-                              operation.endTime?.isNotEmpty == true
-                                  ? operation.endTime
-                                  : currentTime;
+    final success = await provider.completeOperation(
+      operation.id ?? 0,
+      operation.endDate ?? now,
+      endTimeToSave ?? currentTime,
+    );
 
-                          endTimeToSave ??= currentTime;
+    //CERRAR LOADER
+    if (context.mounted && Navigator.canPop(context)) {
+      Navigator.of(context).pop(); // Cerrar loader
+    }
 
-                          final success = await provider.completeOperation(
-                              operation.id ?? 0,
-                              operation.endDate ?? now,
-                              endTimeToSave,
-                              context);
+    if (success) {
+      if (context.mounted) {
+        showSuccessToast(context, 'Operación completada exitosamente');
+      }
+    } else {
+      debugPrint('Error al completar operación: ${provider.error}');
+      if (context.mounted) {
+        showErrorToast(context,
+            'Error al completar la operación: ${provider.error ?? "Desconocido"}');
+      }
+    }
+  } catch (e) {
+    //CERRAR LOADER EN CASO DE ERROR
+    if (context.mounted && Navigator.canPop(context)) {
+      Navigator.of(context).pop();
+    }
 
-                          if (success) {
-                            Navigator.pop(dialogContext);
-                            showSuccessToast(
-                                context, 'Operación completada exitosamente');
-                          } else {
-                            setDialogState(() {
-                              isProcessing = false;
-                            });
-                            showErrorToast(context,
-                                'Error al completar la operación: ${provider.error ?? "Desconocido"}');
-                          }
-                        } catch (e) {
-                          debugPrint('Error al completar operación: $e');
-                          if (context.mounted) {
-                            setDialogState(() {
-                              isProcessing = false;
-                            });
-                            showErrorToast(
-                                context, 'Error al completar operación: $e');
-                          }
-                        } finally {
-                          if (!completer.isCompleted) completer.complete();
-                        }
-                      },
-                child: SizedBox(
-                  width: 100,
-                  height: 36,
-                  child: Center(
-                    child: isProcessing
-                        ? AppLoader(
-                            color: Colors.white,
-                            size: LoaderSize.medium,
-                            message: 'Procesando...')
-                        : const Text(
-                            'Confirmar',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      );
-    },
-  );
-
-  return completer.future;
+    if (context.mounted) {
+      showErrorToast(context, 'Error al completar operación: $e');
+    }
+  }
 }
 
-// FUNCIONES de diálogo específicas que retornan Future
+//DIÁLOGOS SIMPLES
+Future<bool> _showSimpleContainerDialog(BuildContext context) async {
+  final result = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: Text('Completar por Contenedores'),
+      content: Text('Funcionalidad por implementar'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext, false),
+          child: Text('Cancelar'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext, true),
+          child: Text('Completar'),
+        ),
+      ],
+    ),
+  );
+  return result ?? false;
+}
 
+Future<bool> _showSimpleGenericDialog(
+    BuildContext context, WorkerGroup group) async {
+  final result = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: Text('Completar Grupo'),
+      content: Text('¿Completar grupo ${group.name ?? group.id}?'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext, false),
+          child: Text('Cancelar'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext, true),
+          child: Text('Completar'),
+        ),
+      ],
+    ),
+  );
+  return result ?? false;
+}
+
+//RESTO DE FUNCIONES IGUAL...
 Future<void> showHoursCompletionDialog(
   BuildContext context,
   Operation assignment,
@@ -247,8 +263,6 @@ Future<void> showHoursCompletionDialog(
   Function onStateChanged,
   WorkerGroup group,
 ) async {
-  final Completer<void> completer = Completer<void>();
-
   showDialog(
     context: context,
     barrierDismissible: false,
@@ -257,7 +271,6 @@ Future<void> showHoursCompletionDialog(
         onStateChanged: () {
           onStateChanged();
           Navigator.pop(dialogContext);
-          if (!completer.isCompleted) completer.complete();
         },
         group: group,
         // onCancel: () {
@@ -267,8 +280,6 @@ Future<void> showHoursCompletionDialog(
       );
     },
   );
-
-  return completer.future;
 }
 
 Future<void> showTonnageCompletionDialog(
@@ -337,281 +348,6 @@ Future<void> showContainerCompletionDialog(
   return completer.future;
 }
 
-// Diálogo para confirmar la finalización de un único trabajador
-void showIndividualCompletionDialog(BuildContext context, Operation assignment,
-    Worker worker, OperationsProvider provider, WorkerGroup group) {
-  // TODO ENVIAR EL TRABAJADOR COMO PARAMETRO Y SU RESPECTIVO GRUPO
-  bool isProcessing = false;
-  DateTime selectedDate = DateTime.now();
-  TimeOfDay selectedTime = TimeOfDay.now();
-
-  // Formatear fecha y hora para mostrar
-  String formattedDate = DateFormat('dd/MM/yyyy').format(selectedDate);
-  String formattedTime =
-      "${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}";
-
-  showDialog(
-    context: context,
-    builder: (BuildContext dialogContext) {
-      return StatefulBuilder(
-        builder: (context, setDialogState) {
-          return AlertDialog(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: Text('Completar Tarea de Trabajador'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  RichText(
-                    text: TextSpan(
-                      style: TextStyle(color: Color(0xFF718096), fontSize: 14),
-                      children: [
-                        TextSpan(
-                            text: 'Se marcará como completada la tarea de '),
-                        TextSpan(
-                          text: worker.name,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF2D3748),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'Fecha de finalización',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF4A5568),
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: isProcessing
-                        ? null
-                        : () async {
-                            final DateTime? picked = await showDatePicker(
-                              context: context,
-                              initialDate: selectedDate,
-                              firstDate:
-                                  DateTime.now().subtract(Duration(days: 30)),
-                              lastDate: DateTime.now().add(Duration(days: 1)),
-                            );
-                            if (picked != null) {
-                              setDialogState(() {
-                                selectedDate = picked;
-                                formattedDate = DateFormat('dd/MM/yyyy')
-                                    .format(selectedDate);
-                              });
-                            }
-                          },
-                    child: Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Color(0xFFE2E8F0)),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.calendar_today,
-                              size: 18, color: Color(0xFF718096)),
-                          SizedBox(width: 8),
-                          Text(
-                            formattedDate,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF2D3748),
-                            ),
-                          ),
-                          Spacer(),
-                          Icon(Icons.arrow_drop_down, color: Color(0xFF718096)),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'Hora de finalización',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF4A5568),
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: isProcessing
-                        ? null
-                        : () async {
-                            final TimeOfDay? picked = await showTimePicker(
-                              context: context,
-                              initialTime: selectedTime,
-                            );
-                            if (picked != null) {
-                              setDialogState(() {
-                                selectedTime = picked;
-                                formattedTime =
-                                    "${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}";
-                              });
-                            }
-                          },
-                    child: Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Color(0xFFE2E8F0)),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.access_time,
-                              size: 18, color: Color(0xFF718096)),
-                          SizedBox(width: 8),
-                          Text(
-                            formattedTime,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF2D3748),
-                            ),
-                          ),
-                          Spacer(),
-                          Icon(Icons.arrow_drop_down, color: Color(0xFF718096)),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed:
-                    isProcessing ? null : () => Navigator.pop(dialogContext),
-                style: TextButton.styleFrom(
-                  foregroundColor:
-                      isProcessing ? Color(0xFFCBD5E0) : Color(0xFF718096),
-                ),
-                child: Text('Cancelar'),
-              ),
-              NeumorphicButton(
-                style: NeumorphicStyle(
-                  depth: isProcessing ? 0 : 2,
-                  intensity: 0.7,
-                  color: isProcessing ? Color(0xFF9AE6B4) : Color(0xFF38A169),
-                  boxShape:
-                      NeumorphicBoxShape.roundRect(BorderRadius.circular(8)),
-                ),
-                onPressed: isProcessing
-                    ? null
-                    : () async {
-                        setDialogState(() {
-                          isProcessing = true;
-                        });
-
-                        try {
-                          // Liberar al trabajador individual y marcarlo como completado
-                          final workersProvider = Provider.of<WorkersProvider>(
-                              context,
-                              listen: false);
-
-                          // Crear copia de la operación con solo el trabajador completado
-                          Operation completedAssignment = Operation(
-                            id: assignment.id,
-                            // workers: assignment.workers,
-                            area: assignment.area,
-                            // task: assignment.task,
-                            date: assignment.date,
-                            time: assignment.time,
-                            supervisor: assignment.supervisor,
-                            status: assignment.status,
-                            endDate: selectedDate,
-                            endTime: formattedTime,
-                            zone: assignment.zone,
-                            motorship: assignment.motorship,
-                            userId: assignment.userId,
-                            areaId: assignment.areaId,
-                            // taskId: assignment.taskId,
-                            clientId: assignment.clientId,
-                            inChagers: assignment.inChagers,
-                            groups: assignment
-                                .groups, // Mantener los grupos actuales
-                            id_clientProgramming:
-                                assignment.id_clientProgramming,
-                          );
-
-                          // Llamar a API para completar operación individual
-                          final success = await provider.completeGroup(
-                            completedAssignment,
-                            [worker],
-                            "worker_${worker.id}",
-                            selectedDate,
-                            formattedTime,
-                            context,
-                          );
-
-                          // Liberar trabajador solo si la operación tuvo éxito
-                          if (success) {
-                            // await workersProvider.releaseWorkerObject(
-                            //     worker, context);
-
-                            // IMPORTANTE: No modificar directamente la lista de workers
-                            // Esto evita problemas con los grupos
-                          }
-
-                          Navigator.of(dialogContext).pop();
-
-                          // Cerrar el diálogo de detalles completo para forzar reconstrucción
-                          Navigator.of(context).pop();
-
-                          // Mostrar mensaje de éxito
-                          if (success) {
-                            showSuccessToast(context,
-                                'Tarea completada exitosamente para ${worker.name}');
-                          }
-                        } catch (e) {
-                          debugPrint('Error al completar tarea individual: $e');
-
-                          if (context.mounted) {
-                            setDialogState(() {
-                              isProcessing = false;
-                            });
-                            showErrorToast(
-                                context, 'Error al completar la tarea: $e');
-                          }
-                        }
-                      },
-                child: SizedBox(
-                  width: 100,
-                  height: 36,
-                  child: Center(
-                    child: isProcessing
-                        ? AppLoader(
-                            color: Colors.white,
-                            size: LoaderSize.medium,
-                            message: 'Procesando...')
-                        : Text(
-                            'Completar',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      );
-    },
-  );
-}
-
 // Diálogo para confirmar la finalización de un grupo de trabajadores
 void showGroupCompletionDialog(
     BuildContext context,
@@ -637,7 +373,9 @@ void showGroupCompletionDialog(
           return AlertDialog(
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: Text('Completar Grupo de Trabajadores'),
+            title: Text(groupId == "individual"
+                ? 'Completar Trabajadores Individuales'
+                : 'Completar Grupo de Trabajadores'),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -776,6 +514,11 @@ void showGroupCompletionDialog(
                 onPressed: isProcessing
                     ? null
                     : () async {
+                        // Liberar al grupo de trabajadores
+                        var workersProvider = Provider.of<WorkersProvider>(
+                            context,
+                            listen: false);
+
                         try {
                           // Crear copia de la operación con solo los trabajadores completados
                           Operation completedAssignment = Operation(
@@ -846,15 +589,34 @@ void showGroupCompletionDialog(
                           isProcessing = false;
                         }
                       },
-                child: SizedBox(
+                child: Container(
                   width: 100,
                   height: 36,
                   child: Center(
                     child: isProcessing
-                        ? AppLoader(
-                            color: Colors.white,
-                            size: LoaderSize.medium,
-                            message: 'Procesando...')
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Procesando',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          )
                         : Text(
                             'Completar',
                             style: TextStyle(

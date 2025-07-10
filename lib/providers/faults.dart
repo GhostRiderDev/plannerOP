@@ -40,7 +40,10 @@ class FaultsProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final faults = await _faultService.fetchFaults(context);
+      final WorkersProvider workersProvider =
+          Provider.of<WorkersProvider>(context, listen: false);
+      final List<Worker> workers = workersProvider.workers;
+      final faults = await _faultService.fetchFaults(workers);
       _faults = faults;
       _hasLoadedInitialData = true;
     } catch (e) {
@@ -161,8 +164,8 @@ class FaultsProvider extends ChangeNotifier {
   }) async {
     try {
       // Llamar al servicio para registrar la falta
-      final success = await _faultService.registerFault(worker, context,
-          description: description);
+      final success =
+          await _faultService.registerFault(worker, description: description);
       if (success) {
         final _workers =
             Provider.of<WorkersProvider>(context, listen: false).workers;
@@ -224,7 +227,7 @@ class FaultsProvider extends ChangeNotifier {
       }
 
       // Llamar al servicio para registrar el abandono
-      final success = await _faultService.registerAbandonment(worker, context,
+      final success = await _faultService.registerAbandonment(worker,
           description: description);
 
       final _workers =

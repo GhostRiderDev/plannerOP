@@ -4,6 +4,7 @@ import 'package:plannerop/core/model/operation.dart';
 import 'package:plannerop/core/model/worker.dart';
 import 'package:plannerop/core/model/workerGroup.dart';
 import 'package:plannerop/dto/operations/createOperation.dart';
+import 'package:plannerop/providers/workers.dart';
 import 'package:plannerop/services/operations/operation.dart';
 import 'package:plannerop/providers/programmings.dart';
 import 'package:plannerop/providers/workerGroup.dart';
@@ -132,8 +133,7 @@ class OperationsProvider extends ChangeNotifier {
         debugPrint('Es el último grupo, completando toda la operación');
         hasCompleted = true;
         timeoutTimer.cancel();
-        return await completeOperation(
-            assignment.id ?? 0, endDate, endTime, context);
+        return await completeOperation(assignment.id ?? 0, endDate, endTime);
       }
 
       // Si no, enviar petición para completar sólo este grupo/trabajador
@@ -145,7 +145,6 @@ class OperationsProvider extends ChangeNotifier {
         startDate,
         startTime,
         endTime,
-        context,
       );
 
       if (success) {
@@ -210,9 +209,11 @@ class OperationsProvider extends ChangeNotifier {
     _lastContext = context;
 
     try {
+      final workersProvider =
+          Provider.of<WorkersProvider>(context, listen: false);
       // Refrescar solo asignaciones activas y pendientes
-      final updatedOperations = await _operationService
-          .fetchOperationsByStatus(context, ['INPROGRESS', 'PENDING']);
+      final updatedOperations = await _operationService.fetchOperationsByStatus(
+          ['INPROGRESS', 'PENDING'], workersProvider.workers);
 
       if (updatedOperations.isNotEmpty) {
         // Actualizar lista existente
@@ -226,11 +227,10 @@ class OperationsProvider extends ChangeNotifier {
   }
 
   Future<bool> completeOperation(
-      int id, DateTime endDate, String endTime, BuildContext context) async {
-    // debugPrint('Completando operación...');
+      int id, DateTime endDate, String endTime) async {
     try {
       final success = await _operationService.completeOperation(
-          id, 'COMPLETED', endDate, endTime, context);
+          id, 'COMPLETED', endDate, endTime);
 
       if (success) {
         final index = _operations.indexWhere((a) => a.id == id);
@@ -273,7 +273,7 @@ class OperationsProvider extends ChangeNotifier {
     try {
       // Llamar al servicio para eliminar el grupo en el backend
       final success = await _operationService.removeGroupFromOperation(
-          assigmentId, context, workersGroups);
+          assigmentId, workersGroups);
 
       if (success) {
         // Si fue exitoso, actualizar la operación local
@@ -336,7 +336,7 @@ class OperationsProvider extends ChangeNotifier {
 
       // Llamar al servicio para conectar los trabajadores en el backend
       final success = await _operationService.connectWorkersToOperation(
-          assignmentId, individualWorkerIds, groupsToConnect, context);
+          assignmentId, individualWorkerIds, groupsToConnect);
 
       _isLoading = false;
       notifyListeners();
@@ -393,8 +393,7 @@ class OperationsProvider extends ChangeNotifier {
 
       CreateOperationDto response = CreateOperationDto(id: 0, isSuccess: false);
       if (context != null) {
-        response =
-            await _operationService.createOperation(newAssignment, context);
+        response = await _operationService.createOperation(newAssignment);
         newAssignment.id = response.id;
       }
 
@@ -441,9 +440,12 @@ class OperationsProvider extends ChangeNotifier {
   Future<void> _refreshCreatedOperation(
       int operationId, BuildContext context) async {
     try {
+      final workersProvider =
+          Provider.of<WorkersProvider>(context, listen: false);
       // Obtener la operación específica del backend
       final refreshedOperations = await _operationService
-          .fetchOperationsByStatus(context, ['PENDING', 'INPROGRESS']);
+          .fetchOperationsByStatus(
+              ['PENDING', 'INPROGRESS'], workersProvider.workers);
 
       // Buscar la operación específica en la respuesta usando where (más seguro)
       final matchingOperations =
@@ -485,7 +487,7 @@ class OperationsProvider extends ChangeNotifier {
       // Actualizar en backend si hay contexto
       if (context != null && status != null) {
         final success =
-            await _operationService.updateStatusOperation(id, status, context);
+            await _operationService.updateStatusOperation(id, status);
         if (!success) return false;
       }
 
@@ -530,9 +532,12 @@ class OperationsProvider extends ChangeNotifier {
     }
 
     try {
+      final workersProvider =
+          Provider.of<WorkersProvider>(context, listen: false);
       // Primera fase: Cargar asignaciones activas y pendientes (alta prioridad)
       final highPriorityAssignments = await _operationService
-          .fetchOperationsByStatus(context, ['INPROGRESS', 'PENDING']);
+          .fetchOperationsByStatus(
+              ['INPROGRESS', 'PENDING'], workersProvider.workers);
 
       // Actualizar primero las asignaciones de alta prioridad
       if (highPriorityAssignments.isNotEmpty) {
@@ -564,8 +569,10 @@ class OperationsProvider extends ChangeNotifier {
       BuildContext context) async {
     // debugPrint('Cargando asignaciones completadas en segundo plano...');
     try {
+      final workersProvider =
+          Provider.of<WorkersProvider>(context, listen: false);
       final completedAssignments = await _operationService
-          .fetchOperationsByStatus(context, ['COMPLETED']);
+          .fetchOperationsByStatus(['COMPLETED'], workersProvider.workers);
 
       if (completedAssignments.isNotEmpty) {
         // Actualizar solo las asignaciones completadas

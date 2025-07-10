@@ -99,7 +99,6 @@ class FeedingProvider extends ChangeNotifier {
         workerId: workerId,
         operationId: operationId,
         type: apiType,
-        context: context,
       );
 
       success = result['success'] ?? false;
@@ -119,6 +118,8 @@ class FeedingProvider extends ChangeNotifier {
 
         showSuccessToast(context, "$foodType entregado");
         notifyListeners();
+      } else {
+        showErrorToast(context, "Error al registrar alimentación");
       }
 
       _isLoading = false;
@@ -127,7 +128,7 @@ class FeedingProvider extends ChangeNotifier {
     } catch (e) {
       _isLoading = false;
       notifyListeners();
-      showErrorToast(context, "Error al registrar alimentación: $e");
+      showErrorToast(context, "Error al registrar alimentación");
       return false;
     }
   }
@@ -160,7 +161,6 @@ class FeedingProvider extends ChangeNotifier {
       //  USAR EL ID ESPECÍFICO PARA ELIMINAR
       success = await _feedingService.unmarkFeedingById(
         feedingId: feedingId,
-        context: context,
       );
 
       if (success) {
@@ -176,6 +176,8 @@ class FeedingProvider extends ChangeNotifier {
 
         showSuccessToast(context, "$foodType desmarcado");
         notifyListeners();
+      } else {
+        showErrorToast(context, "Error al desmarcar alimentación");
       }
 
       _isLoading = false;
@@ -185,7 +187,7 @@ class FeedingProvider extends ChangeNotifier {
     } catch (e) {
       _isLoading = false;
       notifyListeners();
-      showErrorToast(context, "Error al desmarcar alimentación: $e");
+      showErrorToast(context, "Error de red al desmarcar alimentación");
       return false;
     }
   }
@@ -234,7 +236,7 @@ class FeedingProvider extends ChangeNotifier {
     try {
       final feedingService = FeedingService();
       final List<dynamic> feedingData =
-          await feedingService.getFeedingsForOperation(operationId, context);
+          await feedingService.getFeedingsForOperation(operationId);
 
       // Inicializar la estructura de datos para esta operación
       _feedingStatus[operationId] = {};

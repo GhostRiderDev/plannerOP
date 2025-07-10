@@ -259,7 +259,7 @@ class _ActiveOperationsViewState extends State<ActiveOperationsView> {
                     NeumorphicBoxShape.roundRect(BorderRadius.circular(8)),
               ),
               onPressed: () {
-                Navigator.pop(context);
+                // Navigator.pop(context);
                 showCompletionDialog(
                     context: context,
                     operation: assignment,

@@ -1,34 +1,21 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-import 'package:plannerop/core/model/user.dart';
 import 'package:plannerop/core/model/worker.dart';
+import 'package:plannerop/core/network/httpClient.dart';
 import 'package:plannerop/dto/workers/fetchWorkers.dart';
 import 'package:plannerop/providers/auth.dart';
-import 'package:plannerop/providers/user.dart';
 import 'package:provider/provider.dart';
 
 class WorkerService {
-  final String API_URL = dotenv.get('API_URL');
+  final ApiClient _apiClient = ApiClient();
 
   // Versión que acepta un token directamente, sin depender del contexto
-  Future<FetchWorkersDto> fetchWorkers(BuildContext context) async {
+  Future<FetchWorkersDto> fetchWorkers() async {
     try {
-      // Obtiene el token de acceso del provider de autenticación
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final String token = authProvider.accessToken;
-
-      if (token.isEmpty) {
-        debugPrint('No hay token disponible');
-        return FetchWorkersDto(workers: [], isSuccess: false);
-      }
-
-      var url = Uri.parse('$API_URL/worker');
-      var response =
-          await http.get(url, headers: {'Authorization': 'Bearer $token'});
+      var url = '/worker';
+      var response = await _apiClient.get(url);
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
@@ -120,35 +107,19 @@ class WorkerService {
   }
 
   // Método para registrar un nuevo trabajador
-  Future<Map<String, dynamic>> registerWorker(
-      Worker worker, BuildContext context) async {
+  Future<Map<String, dynamic>> registerWorker(Worker worker, int userId) async {
     try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final String token = authProvider.accessToken;
-
-      final userProvider = Provider.of<UserProvider>(context, listen: false);
-      final User user = userProvider.user;
-
-      if (token.isEmpty) {
-        debugPrint('No hay token disponible');
-        return {'success': false, 'message': 'No hay token disponible'};
-      }
-
-      var url = Uri.parse('$API_URL/worker');
-      var response = await http.post(url,
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Content-Type': 'application/json'
-          },
-          body: jsonEncode({
-            'name': worker.name,
-            'dni': worker.document,
-            'phone': worker.phone,
-            'id_area': worker.idArea,
-            'status': 'AVALIABLE',
-            'id_user': user.id,
-            'code': worker.code,
-          }));
+      var url = '/worker';
+      final payload = {
+        'name': worker.name,
+        'dni': worker.document,
+        'phone': worker.phone,
+        'id_area': worker.idArea,
+        'status': 'AVALIABLE',
+        'id_user': userId,
+        'code': worker.code,
+      };
+      var response = await _apiClient.post(url, body: payload);
 
       if (response.statusCode == 201) {
         return {
@@ -194,15 +165,7 @@ class WorkerService {
       int workerId, String newStatus, BuildContext context,
       {DateTime? startDate, DateTime? endDate}) async {
     try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final String token = authProvider.accessToken;
-
-      if (token.isEmpty) {
-        debugPrint('No hay token disponible');
-        return false;
-      }
-
-      var url = Uri.parse('$API_URL/worker/$workerId');
+      var url = '/worker/$workerId';
 
       var statusToAPI = {
         'available': 'AVALIABLE',
@@ -227,13 +190,9 @@ class WorkerService {
         body['dateRetierment'] = DateFormat('yyyy-MM-dd').format(startDate);
       }
 
-      var response = await http.patch(
+      var response = await _apiClient.patch(
         url,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json'
-        },
-        body: jsonEncode(body),
+        body: body,
       );
 
       debugPrint('API Response: ${response.statusCode} - ${response.body}');
@@ -257,7 +216,7 @@ class WorkerService {
         return false;
       }
 
-      var url = Uri.parse('$API_URL/worker/${worker.id}');
+      var url = '/worker/${worker.id}';
 
       // Mapear estados internos a la API
       var statusToAPI = {
@@ -282,7 +241,7 @@ class WorkerService {
       }
 
       body['failures'] = worker.failures;
-    
+
       // Añadir fechas específicas según el estado
       if (worker.status == WorkerStatus.incapacitated) {
         if (worker.incapacityStartDate != null) {
@@ -302,20 +261,10 @@ class WorkerService {
             DateFormat('yyyy-MM-dd').format(worker.deactivationDate!);
       }
 
-      // Debug info
-      // debugPrint('Actualizando worker ID: ${worker.id}');
-      // debugPrint('Datos a enviar: $body');
-
-      var response = await http.patch(
+      var response = await _apiClient.patch(
         url,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json'
-        },
-        body: jsonEncode(body),
+        body: body,
       );
-
-      // debugPrint('API Response: ${response.statusCode} - ${response.body}');
 
       return response.statusCode >= 200 && response.statusCode < 300;
     } catch (e) {

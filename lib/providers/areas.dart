@@ -15,12 +15,10 @@ class AreasProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> fetchAreas(BuildContext context) async {
+  Future<void> fetchAreas() async {
     if (_areas.isEmpty) {
-      final String token =
-          Provider.of<AuthProvider>(context, listen: false).accessToken;
       try {
-        final List<Area> areas = await _areaService.fetchAreas(token);
+        final List<Area> areas = await _areaService.fetchAreas();
         setAreas(areas);
       } catch (e) {
         debugPrint('Error al obtener las áreas en FetchAreas_provider');

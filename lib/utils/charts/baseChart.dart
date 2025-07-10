@@ -80,7 +80,6 @@ abstract class BaseChartState<T, W extends BaseChart<T>> extends State<W> {
 
       // Obtener operaciones de la API con el rango de fechas y estados
       final operations = await _operationsService.fetchOperationsByDateRange(
-        context,
         widget.startDate,
         widget.endDate,
         statuses: apiStatuses,

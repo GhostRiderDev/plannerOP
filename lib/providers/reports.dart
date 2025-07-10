@@ -74,7 +74,6 @@ class ReportsProvider extends ChangeNotifier {
 
       final List<Operation> operations =
           await _operationsService.fetchOperationsByDateRange(
-        context,
         rangeStart,
         rangeEnd,
       );
