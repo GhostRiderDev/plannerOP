@@ -233,8 +233,6 @@ Este proyecto está licenciado bajo la Licencia MIT. Ver el archivo `LICENSE` pa
 
 - **Lead Developer**: [KeniBeck](https://github.com/KeniBeck)
 - **Developer**: [GhostRiderDev](https://github.com/GhostRiderDev)
-- **UI/UX Designer**: [Nombre]
-- **QA Engineer**: [Nombre]
 
 ## ⚙️ Configuración Avanzada
 
